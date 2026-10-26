@@ -3,10 +3,11 @@
 /android/
 *.tmp
 
-# Exportações e chaves (NUNCA versionar a keystore)
+# Exportações e chaves (NUNCA versionar a keystore de publicação)
 /builds/
 *.apk
 *.aab
 *.keystore
 *.jks
+!ci/debug.keystore
 export_credentials.cfg

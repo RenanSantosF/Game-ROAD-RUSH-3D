@@ -1,43 +1,70 @@
 # Road Rush 3D
 
-Endless runner 3D low-poly para Android, desenvolvido em **Godot 4.7.2 (estável)** com GDScript,
-usando apenas o editor Godot para Android.
+Endless runner 3D low-poly para Android, feito em **Godot 4.3** (GDScript, renderizador Compatibility).
+Corra pela cidade, troque de faixa, pule barreiras, deslize sob placas, desvie dos carros e colete moedas.
 
-## Configuração-alvo
+## Baixar o APK de teste
 
-| Item | Valor |
+Cada `push` gera um APK automaticamente (workflow `.github/workflows/android-apk.yml`).
+
+- **Mais fácil no celular:** abra a página **Releases** do repositório > **APK de teste** > toque em `RoadRush3D.apk`.
+- **Pelo Actions:** aba **Actions** > execução mais recente (verde) > seção **Artifacts** > `RoadRush3D-apk` (vem em .zip; extraia antes de instalar).
+
+Na primeira instalação, o Android pede para permitir "instalar apps desta fonte". Todas as builds usam a mesma
+chave de depuração (`ci/debug.keystore`), então uma build nova instala **por cima** da anterior sem perder o progresso.
+
+> A chave em `ci/debug.keystore` serve **só para testes**. A chave de publicação na Play Store será outra,
+> criada na Etapa 15, e nunca deve ser enviada ao GitHub.
+
+## Controles
+
+| Gesto | Ação |
 |---|---|
-| Engine | Godot 4.7.2 stable (editor Android) |
-| Renderizador | Compatibility (OpenGL ES 3.0) — máxima compatibilidade com celulares modestos |
-| Orientação | Paisagem com sensor (`sensor_landscape`) |
-| Resolução base | 1280×720, stretch `canvas_items`, aspect `expand` |
-| Exportação AAB / plugins (AdMob) | Gradle build via app **GABE** no próprio celular (Etapas 13 e 15) |
+| Deslizar para a esquerda/direita | Trocar de faixa |
+| Deslizar para cima | Pular (barreiras e cones) |
+| Deslizar para baixo | Deslizar (placas suspensas); no ar, desce rápido |
+| Botão `II` / botão Voltar do Android | Pausar |
+
+No PC: setas/WASD/espaço e Esc.
+
+## O que já existe
+
+- 3 faixas, avanço automático, velocidade e dificuldade crescentes.
+- Carros parados e em movimento, ônibus, barreiras, cones e placas (sempre com pelo menos uma saída).
+- Moedas, distância, recorde, metas de distância com recompensa única.
+- Menu, pausa (com contagem 3-2-1), fim de jogo, reinício, configurações e política de privacidade.
+- Salvamento local (JSON com backup) de moedas, recorde, personagens, missões e configurações.
+- 4 personagens (1 grátis + 3 desbloqueáveis com moedas do jogo).
+- 3 missões diárias (moedas, distância e tempo/ações) com resgate.
+- Música e efeitos sintetizados por código (sem arquivos de terceiros).
+- Camada de anúncios separada: **nenhum SDK real ainda**. O APK de teste mostra um "anúncio simulado" local,
+  identificado como tal, só para testar o fluxo de continuar e dobrar moedas.
 
 ## Estrutura
 
 ```
-res://
-├── scenes/      main, player, road, obstacles, collectibles, ui, menus
-├── scripts/     mesma divisão das cenas + autoload/ (singletons) + ads/ (monetização)
-├── assets/      models, textures, audio/music, audio/sfx, fonts
-├── data/        configurações de jogo (missões, personagens) em .tres/.json
-└── docs/        roteiro, política de privacidade, notas de teste
+scenes/main/main.tscn         cena principal (mundo 3D + interface)
+scripts/main/main.gd          fluxo da partida e câmera
+scripts/player/               jogador, modelo animado, gestos
+scripts/road/                 estrada infinita reaproveitada
+scripts/obstacles/            obstáculos, geração e pooling
+scripts/ui/ e scripts/menus/  HUD, tema e telas
+scripts/autoload/             SaveManager, AudioManager, Missions, Ads
+scripts/data/                 balanceamento e personagens
+scripts/util/                 geração das malhas low-poly
+tests/                        teste automático (robô) e capturas de tela
 ```
+
+## Abrir no editor Godot do Android
+
+1. Instale o **Godot Engine 4.3** (a versão do editor precisa ser a mesma do projeto).
+2. Baixe o código: botão **Code > Download ZIP** (escolha o branch antes), extraia e use **Import** no Godot
+   selecionando o `project.godot`.
 
 ## Progresso
 
-- [x] Etapa 1 — Projeto vazio, configurações e estrutura de arquivos
-- [ ] Etapa 2 — Estrada 3D low-poly, câmera e iluminação
-- [ ] Etapa 3 — Personagem e movimentação automática
-- [ ] Etapa 4 — Controles por toque e troca entre faixas
-- [ ] Etapa 5 — Pulo, deslize e colisões
-- [ ] Etapa 6 — Carros, obstáculos e geração progressiva
-- [ ] Etapa 7 — Moedas, pontuação e recorde
-- [ ] Etapa 8 — Menu, pausa, derrota e reinício
-- [ ] Etapa 9 — Salvamento local
-- [ ] Etapa 10 — Personagens desbloqueáveis
-- [ ] Etapa 11 — Missões diárias e metas
-- [ ] Etapa 12 — Sons, efeitos e otimização
-- [ ] Etapa 13 — Anúncios (AdMob) e conformidade (Famílias)
-- [ ] Etapa 14 — Testes completos no Android
-- [ ] Etapa 15 — Exportação AAB e publicação
+- [x] Etapas 1 a 12: projeto, estrada, personagem, controles, pulo/deslize, obstáculos, moedas/pontuação,
+  menus, salvamento, personagens, missões, sons e otimização (versão jogável 0.2.0)
+- [ ] Etapa 13: AdMob real + configurações para público infantil (Famílias)
+- [ ] Etapa 14: testes completos em aparelhos Android
+- [ ] Etapa 15: AAB assinado e publicação na Google Play
