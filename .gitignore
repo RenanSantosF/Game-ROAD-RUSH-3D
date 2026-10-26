@@ -1,0 +1,12 @@
+# Godot 4
+.godot/
+/android/
+*.tmp
+
+# Exportações e chaves (NUNCA versionar a keystore)
+/builds/
+*.apk
+*.aab
+*.keystore
+*.jks
+export_credentials.cfg
