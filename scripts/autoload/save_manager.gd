@@ -25,6 +25,7 @@ func _defaults() -> Dictionary:
 		"version": SAVE_VERSION,
 		"coins": 0,
 		"best_score": 0,
+		"language": "auto",
 		"selected_character": CharacterCatalog.DEFAULT_ID,
 		"unlocked": [CharacterCatalog.DEFAULT_ID],
 		"settings": {
@@ -219,6 +220,17 @@ func set_setting(key: String, value: bool) -> void:
 	data["settings"][key] = value
 	save_game()
 	settings_changed.emit()
+
+
+# ----------------------------------------------------------------- Idioma
+
+func get_language() -> String:
+	return str(data.get("language", "auto"))
+
+
+func set_language(value: String) -> void:
+	data["language"] = value
+	save_game()
 
 
 # ---------------------------------------------------------------- Missões

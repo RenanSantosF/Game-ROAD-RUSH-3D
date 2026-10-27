@@ -1,6 +1,7 @@
 class_name CharacterCatalog
 extends RefCounted
-## Lista de bichinhos jogáveis. "species" define o formato do modelo
+## Lista de bichinhos jogáveis. "name" e "description" são chaves de tradução
+## (veja scripts/autoload/localization.gd). "species" define o formato do modelo
 ## (chicken, duck, pig, cat) e "color"/"accent" as cores principais.
 
 const DEFAULT_ID := "galinha"
@@ -8,36 +9,36 @@ const DEFAULT_ID := "galinha"
 const CHARACTERS := [
 	{
 		"id": "galinha",
-		"name": "Galinha Pipoca",
+		"name": "CHAR_GALINHA",
 		"price": 0,
-		"description": "Só quer chegar do outro lado!",
+		"description": "CHAR_GALINHA_DESC",
 		"species": "chicken",
 		"color": Color(0.98, 0.98, 0.96),
 		"accent": Color(0.92, 0.2, 0.2),
 	},
 	{
 		"id": "pato",
-		"name": "Patinho Amarelo",
+		"name": "CHAR_PATO",
 		"price": 300,
-		"description": "Nada muito bem... de verdade!",
+		"description": "CHAR_PATO_DESC",
 		"species": "duck",
 		"color": Color(1.0, 0.85, 0.2),
 		"accent": Color(1.0, 0.55, 0.1),
 	},
 	{
 		"id": "porco",
-		"name": "Porquinho Rosa",
+		"name": "CHAR_PORCO",
 		"price": 800,
-		"description": "Pequeno, rosado e corajoso.",
+		"description": "CHAR_PORCO_DESC",
 		"species": "pig",
 		"color": Color(1.0, 0.68, 0.74),
 		"accent": Color(0.92, 0.5, 0.58),
 	},
 	{
 		"id": "gato",
-		"name": "Gato Listrado",
+		"name": "CHAR_GATO",
 		"price": 1500,
-		"description": "Sete vidas? Aqui é só uma!",
+		"description": "CHAR_GATO_DESC",
 		"species": "cat",
 		"color": Color(1.0, 0.6, 0.22),
 		"accent": Color(0.8, 0.4, 0.1),

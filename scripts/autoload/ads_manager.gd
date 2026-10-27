@@ -94,15 +94,15 @@ func _show_mock() -> void:
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.add_theme_constant_override("separation", 20)
 	root.add_child(box)
-	box.add_child(UiTheme.make_label("ANÚNCIO SIMULADO", 48, UiTheme.COLOR_GOLD))
-	box.add_child(UiTheme.make_label("Versão de testes: nenhum anúncio real é exibido\ne nenhum dado é enviado.", 26))
+	box.add_child(UiTheme.make_label(tr("AD_MOCK_TITLE"), 48, UiTheme.COLOR_GOLD))
+	box.add_child(UiTheme.make_label(tr("AD_MOCK_INFO"), 26))
 	_countdown_label = UiTheme.make_label("", 34)
 	box.add_child(_countdown_label)
-	_reward_button = UiTheme.make_button("RECEBER RECOMPENSA", UiTheme.COLOR_PRIMARY)
+	_reward_button = UiTheme.make_button(tr("AD_GET_REWARD"), UiTheme.COLOR_PRIMARY)
 	_reward_button.disabled = true
 	_reward_button.pressed.connect(_finish.bind(true))
 	box.add_child(UiTheme.center(_reward_button))
-	var cancel := UiTheme.make_button("FECHAR SEM RECOMPENSA", UiTheme.COLOR_NEUTRAL, Vector2(420, 72), 26)
+	var cancel := UiTheme.make_button(tr("AD_CLOSE_NO_REWARD"), UiTheme.COLOR_NEUTRAL, Vector2(420, 72), 26)
 	cancel.pressed.connect(_finish.bind(false))
 	box.add_child(UiTheme.center(cancel))
 	_seconds_left = MOCK_DURATION
@@ -124,6 +124,6 @@ func _on_mock_tick() -> void:
 
 func _update_mock_label() -> void:
 	if _seconds_left > 0:
-		_countdown_label.text = "Recompensa liberada em %d..." % _seconds_left
+		_countdown_label.text = tr("AD_COUNTDOWN") % _seconds_left
 	else:
-		_countdown_label.text = "Pronto!"
+		_countdown_label.text = tr("AD_READY")

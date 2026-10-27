@@ -2,7 +2,12 @@
 
 Jogo 3D low-poly de **atravessar a rua** para Android, feito em **Godot 4.3** (GDScript, renderizador Compatibility).
 Ajude a galinha (e os outros bichinhos) a atravessar ruas cheias de carros, rios com troncos e trilhos de trem,
-pulando de quadrado em quadrado o mais longe possível. Câmera panorâmica, de cima e na diagonal.
+pulando de quadrado em quadrado o mais longe possível. Câmera panorâmica, de cima e na diagonal,
+em **orientação vertical (retrato)**.
+
+**Idiomas:** português, inglês e espanhol. O jogo usa o idioma do celular automaticamente (outros idiomas caem
+para inglês) e pode ser trocado em Configurações > Idioma. Todos os textos ficam em
+`scripts/autoload/localization.gd`.
 
 ## Baixar o APK de teste
 
@@ -67,6 +72,7 @@ tests/                        teste automático (robô) e capturas de tela
 
 - [x] Etapas 1 a 12 no novo formato "atravessar a rua": mundo em grade, bichinhos, toques/deslizes, carros,
   rios, trens, moedas/pontos, menus, salvamento, personagens, missões, sons e otimização (versão 0.3.0)
+- [x] Versão 0.4.0: tela vertical, águia mais rápida, idiomas PT/EN/ES
 - [ ] Etapa 13: AdMob real + configurações para público infantil (Famílias)
 - [ ] Etapa 14: testes completos em aparelhos Android
 - [ ] Etapa 15: AAB assinado e publicação na Google Play

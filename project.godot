@@ -12,7 +12,7 @@ config_version=5
 
 config/name="Road Rush 3D"
 config/description="Jogo 3D low-poly de atravessar a rua: pule entre carros, troncos e trens sem ser pego!"
-config/version="0.3.0"
+config/version="0.4.0"
 run/main_scene="res://scenes/main/main.tscn"
 config/quit_on_go_back=false
 config/features=PackedStringArray("4.3", "GL Compatibility")
@@ -22,17 +22,22 @@ config/icon="res://icon.svg"
 [autoload]
 
 SaveManager="*res://scripts/autoload/save_manager.gd"
+Loc="*res://scripts/autoload/localization.gd"
 AudioManager="*res://scripts/autoload/audio_manager.gd"
 Missions="*res://scripts/autoload/mission_manager.gd"
 Ads="*res://scripts/autoload/ads_manager.gd"
 
 [display]
 
-window/size/viewport_width=1280
-window/size/viewport_height=720
+window/size/viewport_width=720
+window/size/viewport_height=1280
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
-window/handheld/orientation=4
+window/handheld/orientation=1
+
+[internationalization]
+
+locale/fallback="en"
 
 [input_devices]
 

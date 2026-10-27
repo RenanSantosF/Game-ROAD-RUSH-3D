@@ -10,12 +10,12 @@ const DEATH_DELAY := 1.2
 const TUTORIAL_GAMES := 3
 
 # Câmera panorâmica (de cima, na diagonal).
-const PLAY_CAM_OFFSET := Vector3(2.2, 11.5, 5.6)
-const PLAY_LOOK_OFFSET := Vector3(0.0, 0.0, -1.3)
-const MENU_CAM_OFFSET := Vector3(1.4, 3.0, 3.8)
-const MENU_LOOK_OFFSET := Vector3(-1.5, 0.45, -0.4)
-const SHOP_CAM_OFFSET := Vector3(0.7, 1.8, 2.7)
-const SHOP_LOOK_OFFSET := Vector3(-0.85, 0.5, 0.0)
+const PLAY_CAM_OFFSET := Vector3(1.5, 12.0, 5.2)
+const PLAY_LOOK_OFFSET := Vector3(0.0, 0.0, -2.0)
+const MENU_CAM_OFFSET := Vector3(0.6, 5.0, 4.6)
+const MENU_LOOK_OFFSET := Vector3(0.0, -0.6, -0.4)
+const SHOP_CAM_OFFSET := Vector3(0.4, 3.2, 3.4)
+const SHOP_LOOK_OFFSET := Vector3(0.0, -0.6, -0.3)
 
 var state: int = GameState.MENU
 
@@ -87,6 +87,10 @@ func _ready() -> void:
 	SaveManager.settings_changed.connect(_apply_settings)
 	_apply_settings()
 	_go_to_menu()
+	if get_tree().has_meta("reopen_settings"):
+		# Voltando de uma troca de idioma: reabre as configurações.
+		get_tree().remove_meta("reopen_settings")
+		_open_submenu(_settings_menu)
 	_snap_camera()
 	AudioManager.play_music()
 
@@ -227,7 +231,7 @@ func _kill(cause: String) -> void:
 		"eagle":
 			_shake = 0.3
 			AudioManager.play_sfx("eagle")
-			_hud.show_toast("A águia te pegou!", Color(1.0, 0.75, 0.6))
+			_hud.show_toast(tr("EAGLE_GOT_YOU"), Color(1.0, 0.75, 0.6))
 		_:
 			_shake = 0.45
 			AudioManager.play_sfx("crash")
@@ -260,7 +264,7 @@ func _on_revive_ad_result(rewarded: bool) -> void:
 	_hud.set_pause_enabled(true)
 	_swipe.enabled = true
 	state = GameState.PLAYING
-	_hud.show_toast("Continue pulando!", Color(0.6, 1.0, 0.6))
+	_hud.show_toast(tr("KEEP_HOPPING"), Color(0.6, 1.0, 0.6))
 
 
 ## Grava moedas, recorde, estatísticas e missões (uma única vez por partida).
@@ -323,7 +327,7 @@ func _check_milestone() -> void:
 	var reward := GameConfig.milestone_reward(_next_milestone)
 	if SaveManager.claim_milestone(target, reward):
 		AudioManager.play_sfx("reward")
-		_hud.show_toast("META DE %d PONTOS!  +%d moedas" % [target, reward])
+		_hud.show_toast(tr("GOAL_REACHED") % [target, reward])
 	_update_next_milestone()
 
 
@@ -334,9 +338,9 @@ func _update_next_milestone() -> void:
 			_next_milestone = i
 			break
 	if _next_milestone < 0:
-		_hud.set_goal("Todas as metas concluídas!")
+		_hud.set_goal(tr("ALL_GOALS_DONE"))
 	else:
-		_hud.set_goal("Próxima meta: %d pontos" % GameConfig.MILESTONES[_next_milestone])
+		_hud.set_goal(tr("NEXT_GOAL") % GameConfig.MILESTONES[_next_milestone])
 
 
 # ----------------------------------------------------------------- Pausa
@@ -426,7 +430,7 @@ func _snap_camera() -> void:
 
 func _update_camera(delta: float) -> void:
 	if state != GameState.MENU:
-		_cam_x = lerpf(_cam_x, clampf(_player.position.x * 0.5, -1.6, 1.6), 1.0 - exp(-3.0 * delta))
+		_cam_x = lerpf(_cam_x, clampf(_player.position.x * 0.7, -2.2, 2.2), 1.0 - exp(-3.0 * delta))
 	var targets := _camera_targets()
 	var k := 1.0 - exp(-(8.0 if state == GameState.PLAYING else 4.0) * delta)
 	_cam_pos = _cam_pos.lerp(targets[0], k)

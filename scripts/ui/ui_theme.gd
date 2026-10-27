@@ -107,6 +107,14 @@ static func make_label(text: String, size := 30, color := Color.WHITE, align := 
 	return l
 
 
+## Texto que quebra linha automaticamente (precisa de uma largura mínima).
+static func make_wrapped_label(text: String, size := 30, color := Color.WHITE, min_width := 0.0) -> Label:
+	var l := make_label(text, size, color)
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.custom_minimum_size.x = min_width
+	return l
+
+
 static func make_panel() -> PanelContainer:
 	return PanelContainer.new()
 

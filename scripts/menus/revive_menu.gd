@@ -23,17 +23,17 @@ func _build() -> void:
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 16)
 	panel.add_child(col)
-	col.add_child(UiTheme.make_label("CONTINUAR?", 54, UiTheme.COLOR_GOLD))
-	col.add_child(UiTheme.make_label("Assista a um anúncio para continuar\nde onde parou (uma vez por partida).", 26))
+	col.add_child(UiTheme.make_label(tr("CONTINUE_Q"), 54, UiTheme.COLOR_GOLD))
+	col.add_child(UiTheme.make_label(tr("CONTINUE_INFO"), 26))
 	_bar = ProgressBar.new()
 	_bar.custom_minimum_size = Vector2(0, 18)
 	_bar.show_percentage = false
 	_bar.max_value = OFFER_TIME
 	col.add_child(_bar)
-	var watch := UiTheme.make_button("ASSISTIR E CONTINUAR", UiTheme.COLOR_PRIMARY, Vector2(460, 92), 32)
+	var watch := UiTheme.make_button(tr("WATCH_AND_CONTINUE"), UiTheme.COLOR_PRIMARY, Vector2(460, 92), 32)
 	watch.pressed.connect(_on_watch)
 	col.add_child(UiTheme.center(watch))
-	var skip := UiTheme.make_button("NÃO, OBRIGADO", UiTheme.COLOR_NEUTRAL, Vector2(460, 72), 26)
+	var skip := UiTheme.make_button(tr("NO_THANKS"), UiTheme.COLOR_NEUTRAL, Vector2(460, 72), 26)
 	skip.pressed.connect(_on_skip)
 	col.add_child(UiTheme.center(skip))
 

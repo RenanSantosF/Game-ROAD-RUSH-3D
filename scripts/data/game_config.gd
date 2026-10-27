@@ -19,9 +19,9 @@ const START_SAFE_ROWS := 3
 const DIFFICULTY_FULL_ROW := 300
 
 # A câmera avança sozinha: quem fica para trás é pego pela águia.
-const SCROLL_SPEED_START := 0.28
-const SCROLL_SPEED_MAX := 1.0
-const BEHIND_LIMIT := 4.5
+const SCROLL_SPEED_START := 0.4
+const SCROLL_SPEED_MAX := 1.3
+const BEHIND_LIMIT := 3.6
 
 const REVIVE_INVINCIBILITY := 2.0
 

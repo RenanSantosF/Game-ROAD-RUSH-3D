@@ -72,11 +72,11 @@ func _ready() -> void:
 	gap.custom_minimum_size = Vector2(0, 30)
 	gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(gap)
-	_toast = UiTheme.make_label("", 40, UiTheme.COLOR_GOLD)
+	_toast = UiTheme.make_wrapped_label("", 40, UiTheme.COLOR_GOLD)
 	_toast.modulate.a = 0.0
 	column.add_child(_toast)
 	column.add_child(UiTheme.spacer())
-	_tutorial = UiTheme.make_label("Toque na tela para pular para a FRENTE\nDeslize para os LADOS ou para TRÁS para desviar", 28)
+	_tutorial = UiTheme.make_wrapped_label(tr("TUTORIAL"), 28)
 	_tutorial.visible = false
 	column.add_child(_tutorial)
 	_fps = UiTheme.make_label("", 20, Color(0.8, 1.0, 0.8), HORIZONTAL_ALIGNMENT_LEFT)
@@ -101,7 +101,7 @@ func _process(delta: float) -> void:
 func reset(best: int) -> void:
 	set_score(0)
 	set_coins(0)
-	_best.text = "Recorde: %d" % best
+	_best.text = tr("BEST") % best
 	_toast.modulate.a = 0.0
 	_countdown.visible = false
 	set_pause_enabled(true)

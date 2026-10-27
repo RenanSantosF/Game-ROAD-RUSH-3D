@@ -38,17 +38,17 @@ func _build() -> void:
 	coin_row.add_child(CoinIcon.new(36))
 	_coins = UiTheme.make_label("", 32, UiTheme.COLOR_GOLD)
 	coin_row.add_child(_coins)
-	_missions = UiTheme.make_label("", 22, Color(0.6, 1.0, 0.6))
+	_missions = UiTheme.make_wrapped_label("", 24, Color(0.6, 1.0, 0.6), 560.0)
 	col.add_child(_missions)
 
 	var buttons := HBoxContainer.new()
 	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
 	buttons.add_theme_constant_override("separation", 14)
 	col.add_child(buttons)
-	var menu := UiTheme.make_button("MENU", UiTheme.COLOR_NEUTRAL, Vector2(220, 88), 30)
+	var menu := UiTheme.make_button(tr("MENU"), UiTheme.COLOR_NEUTRAL, Vector2(220, 88), 30)
 	menu.pressed.connect(func(): menu_pressed.emit())
 	buttons.add_child(menu)
-	var again := UiTheme.make_button("JOGAR DE NOVO", UiTheme.COLOR_PRIMARY, Vector2(360, 88), 32)
+	var again := UiTheme.make_button(tr("PLAY_AGAIN"), UiTheme.COLOR_PRIMARY, Vector2(360, 88), 32)
 	again.pressed.connect(func(): restart_pressed.emit())
 	buttons.add_child(again)
 	_double = UiTheme.make_button("", UiTheme.COLOR_ACCENT, Vector2(594, 72), 26)
@@ -57,27 +57,27 @@ func _build() -> void:
 
 
 func show_results(score: int, best: int, coins: int, new_record: bool, completed: Array, can_double: bool) -> void:
-	_title.text = "NOVO RECORDE!" if new_record else "FIM DE JOGO"
+	_title.text = tr("NEW_RECORD") if new_record else tr("GAME_OVER")
 	_title.add_theme_color_override("font_color", UiTheme.COLOR_GOLD if new_record else Color.WHITE)
-	_score.text = "%d pontos" % score
-	_best.text = "Recorde: %d" % best
-	_coins.text = "+%d moedas" % coins
+	_score.text = tr("POINTS") % score
+	_best.text = tr("BEST") % best
+	_coins.text = tr("PLUS_COINS") % coins
 	if completed.is_empty():
 		_missions.text = ""
 		_missions.visible = false
 	else:
 		_missions.visible = true
-		_missions.text = "Missão concluída: " + ", ".join(PackedStringArray(completed))
-	_double.text = "DOBRAR MOEDAS (assistir anúncio)"
+		_missions.text = tr("MISSION_DONE") % ", ".join(PackedStringArray(completed))
+	_double.text = tr("DOUBLE_COINS_AD")
 	_double.disabled = false
 	_double.visible = can_double and coins > 0
 	open()
 
 
 func mark_doubled(coins: int) -> void:
-	_coins.text = "+%d moedas (dobrado!)" % (coins * 2)
+	_coins.text = tr("PLUS_COINS_DOUBLED") % (coins * 2)
 	_double.disabled = true
-	_double.text = "MOEDAS DOBRADAS"
+	_double.text = tr("COINS_DOUBLED")
 
 
 func hide_double() -> void:

@@ -15,21 +15,21 @@ signal missions_changed
 
 const TEMPLATES := [
 	{"id": "run_coins", "group": 0, "stat": "coins", "mode": "best",
-		"text": "Colete %d moedas em uma partida", "targets": [3, 6, 10], "rewards": [50, 80, 120]},
+		"text": "M_RUN_COINS", "targets": [3, 6, 10], "rewards": [50, 80, 120]},
 	{"id": "day_coins", "group": 0, "stat": "coins", "mode": "sum",
-		"text": "Colete %d moedas hoje", "targets": [10, 20, 35], "rewards": [60, 100, 150]},
+		"text": "M_DAY_COINS", "targets": [10, 20, 35], "rewards": [60, 100, 150]},
 	{"id": "run_distance", "group": 1, "stat": "distance", "mode": "best",
-		"text": "Faça %d pontos em uma partida", "targets": [30, 60, 100], "rewards": [50, 100, 150]},
+		"text": "M_RUN_DISTANCE", "targets": [30, 60, 100], "rewards": [50, 100, 150]},
 	{"id": "day_distance", "group": 1, "stat": "distance", "mode": "sum",
-		"text": "Faça %d pontos somando o dia", "targets": [150, 300, 500], "rewards": [60, 100, 150]},
+		"text": "M_DAY_DISTANCE", "targets": [150, 300, 500], "rewards": [60, 100, 150]},
 	{"id": "run_time", "group": 2, "stat": "time", "mode": "best",
-		"text": "Sobreviva %d segundos em uma partida", "targets": [30, 60, 90], "rewards": [50, 90, 140]},
+		"text": "M_RUN_TIME", "targets": [30, 60, 90], "rewards": [50, 90, 140]},
 	{"id": "day_hops", "group": 2, "stat": "hops", "mode": "sum",
-		"text": "Dê %d pulinhos", "targets": [100, 250, 500], "rewards": [40, 70, 100]},
+		"text": "M_DAY_HOPS", "targets": [100, 250, 500], "rewards": [40, 70, 100]},
 	{"id": "day_roads", "group": 2, "stat": "roads", "mode": "sum",
-		"text": "Atravesse %d ruas", "targets": [20, 45, 80], "rewards": [40, 70, 100]},
+		"text": "M_DAY_ROADS", "targets": [20, 45, 80], "rewards": [40, 70, 100]},
 	{"id": "day_games", "group": 2, "stat": "games", "mode": "sum",
-		"text": "Jogue %d partidas", "targets": [3, 5, 8], "rewards": [40, 60, 90]},
+		"text": "M_DAY_GAMES", "targets": [3, 5, 8], "rewards": [40, 60, 90]},
 ]
 
 
@@ -89,7 +89,7 @@ func get_missions() -> Array:
 		var target := int(m["target"])
 		var progress := mini(int(m["progress"]), target)
 		result.append({
-			"text": t["text"] % target,
+			"text": tr(t["text"]) % target,
 			"target": target,
 			"progress": progress,
 			"reward": int(m["reward"]),
@@ -114,7 +114,7 @@ func record_run(stats: Dictionary) -> Array:
 		var after := maxi(before, value) if t["mode"] == "best" else before + value
 		m["progress"] = mini(after, target)
 		if after >= target:
-			completed.append(t["text"] % target)
+			completed.append(tr(t["text"]) % target)
 	SaveManager.save_game()
 	missions_changed.emit()
 	return completed

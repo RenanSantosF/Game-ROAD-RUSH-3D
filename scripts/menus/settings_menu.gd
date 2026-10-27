@@ -5,13 +5,14 @@ extends BaseMenu
 signal back_pressed
 
 const TOGGLES := [
-	["music", "Música"],
-	["sfx", "Efeitos sonoros"],
-	["shadows", "Sombras (desligue em celulares lentos)"],
-	["show_fps", "Mostrar FPS"],
+	["music", "SET_MUSIC"],
+	["sfx", "SET_SFX"],
+	["shadows", "SET_SHADOWS"],
+	["show_fps", "SET_FPS"],
 ]
 
 var _buttons := {}
+var _language: Button
 var _privacy: PanelContainer
 var _main_box: VBoxContainer
 
@@ -26,20 +27,23 @@ func _build() -> void:
 	_main_box = VBoxContainer.new()
 	_main_box.add_theme_constant_override("separation", 12)
 	panel.add_child(_main_box)
-	_main_box.add_child(UiTheme.make_label("CONFIGURAÇÕES", 42))
+	_main_box.add_child(UiTheme.make_label(tr("SETTINGS_TITLE"), 44))
+	_language = UiTheme.make_button("", UiTheme.COLOR_ACCENT, Vector2(600, 76), 26)
+	_language.pressed.connect(_on_language)
+	_main_box.add_child(_language)
 	for t in TOGGLES:
-		var b := UiTheme.make_button("", UiTheme.COLOR_SECONDARY, Vector2(640, 70), 26)
+		var b := UiTheme.make_button("", UiTheme.COLOR_SECONDARY, Vector2(600, 76), 26)
 		b.pressed.connect(_toggle.bind(t[0]))
 		_buttons[t[0]] = b
 		_main_box.add_child(b)
-	var privacy := UiTheme.make_button("Política de privacidade", UiTheme.COLOR_NEUTRAL, Vector2(640, 70), 26)
+	var privacy := UiTheme.make_button(tr("PRIVACY_POLICY"), UiTheme.COLOR_NEUTRAL, Vector2(600, 76), 26)
 	privacy.pressed.connect(_show_privacy.bind(true))
 	_main_box.add_child(privacy)
-	var back := UiTheme.make_button("VOLTAR", UiTheme.COLOR_PRIMARY, Vector2(640, 78), 30)
+	var back := UiTheme.make_button(tr("BACK"), UiTheme.COLOR_PRIMARY, Vector2(600, 84), 30)
 	back.pressed.connect(func(): back_pressed.emit())
 	_main_box.add_child(back)
 	var version: String = ProjectSettings.get_setting("application/config/version", "")
-	_main_box.add_child(UiTheme.make_label("Versão %s" % version, 18, Color(0.75, 0.8, 0.9)))
+	_main_box.add_child(UiTheme.make_label(tr("VERSION") % version, 18, Color(0.75, 0.8, 0.9)))
 
 	_privacy = UiTheme.make_panel()
 	_privacy.visible = false
@@ -47,31 +51,38 @@ func _build() -> void:
 	var pbox := VBoxContainer.new()
 	pbox.add_theme_constant_override("separation", 14)
 	_privacy.add_child(pbox)
-	pbox.add_child(UiTheme.make_label("PRIVACIDADE", 38))
-	var text := UiTheme.make_label(
-		"Road Rush 3D não coleta dados pessoais.\n" +
-		"Moedas, recordes, personagens e configurações ficam salvos\n" +
-		"somente neste aparelho e são apagados ao desinstalar o jogo.\n" +
-		"Esta versão não usa internet, não tem compras e não exibe\n" +
-		"anúncios reais. Se isso mudar, esta política será atualizada.", 24)
+	pbox.add_child(UiTheme.make_label(tr("PRIVACY_TITLE"), 38))
+	var text := UiTheme.make_label(tr("PRIVACY_TEXT"), 24)
 	pbox.add_child(text)
-	var close := UiTheme.make_button("FECHAR", UiTheme.COLOR_PRIMARY, Vector2(300, 76), 30)
+	var close := UiTheme.make_button(tr("CLOSE"), UiTheme.COLOR_PRIMARY, Vector2(300, 76), 30)
 	close.pressed.connect(_show_privacy.bind(false))
 	pbox.add_child(UiTheme.center(close))
 
 
 func _refresh() -> void:
 	_show_privacy(false)
+	_language.text = tr("LANGUAGE") % Loc.choice_label()
 	for t in TOGGLES:
 		var on := SaveManager.get_setting(t[0])
 		var b: Button = _buttons[t[0]]
-		b.text = "%s:  %s" % [t[1], "LIGADO" if on else "DESLIGADO"]
+		b.text = "%s:  %s" % [tr(t[1]), tr("ON") if on else tr("OFF")]
 		UiTheme.style_button(b, UiTheme.COLOR_SECONDARY if on else UiTheme.COLOR_NEUTRAL)
 
 
 func _toggle(key: String) -> void:
 	SaveManager.set_setting(key, not SaveManager.get_setting(key))
 	_refresh()
+
+
+## Troca o idioma e recarrega a cena para atualizar todos os textos.
+func _on_language() -> void:
+	Loc.cycle_choice()
+	_reopen_after_reload()
+
+
+func _reopen_after_reload() -> void:
+	get_tree().set_meta("reopen_settings", true)
+	get_tree().reload_current_scene()
 
 
 func _show_privacy(value: bool) -> void:

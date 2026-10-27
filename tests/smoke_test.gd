@@ -238,6 +238,17 @@ func _test_flows() -> void:
 	for i in 3:
 		_check(Missions.claim(i) == 0, "missão resgatada duas vezes")
 
+	# Idiomas: português, inglês e espanhol + automático
+	for pair in [["pt", "JOGAR"], ["en", "PLAY"], ["es", "JUGAR"]]:
+		SaveManager.set_language(pair[0])
+		Loc.apply_language()
+		_check(tr("MENU_PLAY") == pair[1], "tradução errada para %s" % pair[0])
+	for key in Loc.STRINGS:
+		_check(Loc.STRINGS[key].size() == 3, "texto sem as 3 traduções: %s" % key)
+	SaveManager.set_language("auto")
+	Loc.apply_language()
+	_check(Loc.LANGUAGES.has(TranslationServer.get_locale()), "idioma automático inválido")
+
 	# Metas: não pagam duas vezes
 	_check(SaveManager.claim_milestone(99, 5), "meta não registrou")
 	_check(not SaveManager.claim_milestone(99, 5), "meta paga duas vezes")
