@@ -91,7 +91,7 @@ func _build_sfx() -> void:
 		_tone(0.18, 1175.0, 1175.0, "triangle", 0.35),
 		_tone(0.18, 988.0, 988.0, "triangle", 0.35),
 	]))
-	_sfx["eagle"] = _to_stream(_tone(0.6, 1900.0, 900.0, "sine", 0.4))
+	_sfx["cloud"] = _to_stream(_mix(_tone(0.7, 0.0, 0.0, "noise", 0.35, 0.03), _tone(0.6, 520.0, 260.0, "sine", 0.25)))
 	_sfx["click"] = _to_stream(_tone(0.05, 880.0, 880.0, "sine", 0.35))
 	_sfx["beep"] = _to_stream(_tone(0.12, 660.0, 660.0, "triangle", 0.45))
 	_sfx["go"] = _to_stream(_tone(0.25, 990.0, 990.0, "triangle", 0.45))

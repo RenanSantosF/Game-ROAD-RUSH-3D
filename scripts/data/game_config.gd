@@ -18,9 +18,12 @@ const ROWS_BEHIND := 8
 const START_SAFE_ROWS := 3
 const DIFFICULTY_FULL_ROW := 300
 
-# A câmera avança sozinha: quem fica para trás é pego pela águia.
-const SCROLL_SPEED_START := 0.4
-const SCROLL_SPEED_MAX := 1.3
+# A câmera avança sozinha e uma nuvem vem atrás: quem fica para trás é engolido.
+# A velocidade (linhas por segundo) cresce aos poucos com os pontos e para de
+# crescer ao chegar em SCROLL_RAMP_POINTS (~5 minutos de jogo).
+const SCROLL_SPEED_START := 0.6
+const SCROLL_SPEED_MAX := 1.35
+const SCROLL_RAMP_POINTS := 350.0
 const BEHIND_LIMIT := 3.6
 
 const REVIVE_INVINCIBILITY := 2.0
@@ -35,7 +38,9 @@ static func difficulty_for_row(row: int) -> float:
 
 
 static func scroll_speed_for_row(row: int) -> float:
-	return lerpf(SCROLL_SPEED_START, SCROLL_SPEED_MAX, difficulty_for_row(row))
+	var t := clampf(float(row) / SCROLL_RAMP_POINTS, 0.0, 1.0)
+	# Curva suave: começa a subir devagar e desacelera antes de estabilizar.
+	return lerpf(SCROLL_SPEED_START, SCROLL_SPEED_MAX, t * t * (3.0 - 2.0 * t))
 
 
 static func milestone_reward(index: int) -> int:

@@ -38,8 +38,9 @@ No PC: setas/WASD/espaço e Esc.
 
 - Mundo infinito em linhas: **grama** (com árvores e pedras), **ruas** (carros e caminhões),
   **rios** (troncos e vitórias-régias) e **trilhos** (o sinal pisca antes de o trem passar).
-- Morre atropelado, afogado ao cair na água ou levado pela correnteza, e a **águia** pega quem ficar parado
-  para trás (a câmera avança sozinha).
+- Morre atropelado, afogado ao cair na água ou levado pela correnteza, e a **nuvem** engole quem ficar
+  para trás (a câmera avança sozinha). A velocidade sobe devagar com os pontos (0,6 → 1,35 linha/s)
+  e estabiliza em 350 pontos; ajuste em `scripts/data/game_config.gd`.
 - Pontos = quantas linhas você avançou. Moedas espalhadas pelo caminho.
 - Recorde, metas de pontos com recompensa única, 3 missões diárias e 4 bichinhos
   (Galinha grátis; Pato, Porquinho e Gato desbloqueáveis com moedas do jogo).
@@ -72,7 +73,8 @@ tests/                        teste automático (robô) e capturas de tela
 
 - [x] Etapas 1 a 12 no novo formato "atravessar a rua": mundo em grade, bichinhos, toques/deslizes, carros,
   rios, trens, moedas/pontos, menus, salvamento, personagens, missões, sons e otimização (versão 0.3.0)
-- [x] Versão 0.4.0: tela vertical, águia mais rápida, idiomas PT/EN/ES
+- [x] Versão 0.4.0: tela vertical, idiomas PT/EN/ES
+- [x] Versão 0.5.0: nuvem que engole no lugar da águia, câmera mais rápida com aceleração gradual e teto
 - [ ] Etapa 13: AdMob real + configurações para público infantil (Famílias)
 - [ ] Etapa 14: testes completos em aparelhos Android
 - [ ] Etapa 15: AAB assinado e publicação na Google Play

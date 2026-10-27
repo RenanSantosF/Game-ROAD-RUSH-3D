@@ -30,6 +30,16 @@ func _ready() -> void:
 	await _wait(0.1)
 	await _shot("04_mais_longe")
 	main._player.invincible_time = 0.0
+	await _wait(3.0)
+	await _shot("045_nuvem_chegando")
+	main._focus = main._player.row + GameConfig.BEHIND_LIMIT + 0.2
+	await _wait(0.5)
+	await _shot("046_nuvem_engoliu")
+	await _wait(2.5)
+	if main.state == main.GameState.REVIVE_OFFER:
+		main._revive_menu._on_skip()
+	main._start_run()
+	await _wait(0.5)
 	main._kill("squash")
 	await _wait(0.5)
 	await _shot("05_atropelado")

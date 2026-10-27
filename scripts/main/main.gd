@@ -31,6 +31,8 @@ var _death_timer := 0.0
 var _next_milestone := -1
 var _scrolling := false
 var _focus := 0.0
+var _cloud_extra := 0.0
+var _cloud: CloudWall
 
 var _cam_pos := Vector3(3, 9, 7)
 var _cam_look := Vector3.ZERO
@@ -57,6 +59,9 @@ func _ready() -> void:
 	_rng.randomize()
 	get_tree().quit_on_go_back = false
 	ModelFactory.warm_up()
+	_cloud = CloudWall.new()
+	_cloud.process_mode = Node.PROCESS_MODE_PAUSABLE
+	add_child(_cloud)
 	_player.set_character(CharacterCatalog.get_by_id(SaveManager.get_selected_character()))
 
 	_player.hopped.connect(_on_player_hopped)
@@ -194,7 +199,7 @@ func _update_playing(delta: float) -> void:
 	if desired > _focus:
 		_focus = lerpf(_focus, desired, 1.0 - exp(-4.0 * delta))
 	if float(_player.row) < _focus - GameConfig.BEHIND_LIMIT:
-		_kill("eagle")
+		_kill("cloud")
 
 
 func _check_hazards(delta: float) -> void:
@@ -221,17 +226,18 @@ func _kill(cause: String) -> void:
 	state = GameState.DYING
 	_swipe.enabled = false
 	_player.die(cause)
-	_death_timer = DEATH_DELAY + (0.4 if cause == "eagle" else 0.0)
+	_death_timer = DEATH_DELAY + (0.3 if cause == "cloud" else 0.0)
 	_hud.set_pause_enabled(false)
 	_hud.show_tutorial(false)
 	match cause:
 		"water":
 			_shake = 0.15
 			AudioManager.play_sfx("splash")
-		"eagle":
-			_shake = 0.3
-			AudioManager.play_sfx("eagle")
-			_hud.show_toast(tr("EAGLE_GOT_YOU"), Color(1.0, 0.75, 0.6))
+		"cloud":
+			_shake = 0.2
+			_cloud_extra = 0.0
+			AudioManager.play_sfx("cloud")
+			_hud.show_toast(tr("CLOUD_GOT_YOU"), Color(0.85, 0.92, 1.0))
 		_:
 			_shake = 0.45
 			AudioManager.play_sfx("crash")
@@ -422,6 +428,16 @@ func _camera_targets() -> Array:
 	return [focus + PLAY_CAM_OFFSET, focus + PLAY_LOOK_OFFSET]
 
 
+## A nuvem fica sempre logo atrás do limite; ao engolir alguém, avança mais um pouco.
+func _update_cloud(delta: float) -> void:
+	_cloud.visible = state != GameState.MENU
+	if state == GameState.DYING and _player.model._death == "cloud":
+		_cloud_extra = move_toward(_cloud_extra, 1.6, delta * 4.0)
+	elif state == GameState.PLAYING:
+		_cloud_extra = 0.0
+	_cloud.set_front_row(_focus - GameConfig.BEHIND_LIMIT - 0.5 + _cloud_extra)
+
+
 func _snap_camera() -> void:
 	var targets := _camera_targets()
 	_cam_pos = targets[0]
@@ -429,6 +445,7 @@ func _snap_camera() -> void:
 
 
 func _update_camera(delta: float) -> void:
+	_update_cloud(delta)
 	if state != GameState.MENU:
 		_cam_x = lerpf(_cam_x, clampf(_player.position.x * 0.7, -2.2, 2.2), 1.0 - exp(-3.0 * delta))
 	var targets := _camera_targets()

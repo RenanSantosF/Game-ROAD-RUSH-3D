@@ -2,7 +2,7 @@ class_name AnimalModel
 extends Node3D
 ## Bichinho low-poly feito de blocos (galinha, pato, porco, gato) com
 ## animações por código: respirar, pulinho com "estica e achata",
-## esbarrão, e as mortes (achatado, afogado e levado pela águia).
+## esbarrão, e as mortes (achatado, afogado e engolido pela nuvem).
 ## A frente do modelo aponta para -Z.
 
 var hop_t := -1.0
@@ -118,10 +118,12 @@ func _animate_death(delta: float) -> void:
 		"water":
 			_pivot.position.y = lerpf(_pivot.position.y, -0.9, 1.0 - exp(-4.0 * delta))
 			_pivot.scale = _pivot.scale.lerp(Vector3(0.6, 0.6, 0.6), 1.0 - exp(-3.0 * delta))
-		"eagle":
-			if _death_time > 0.35:
-				_pivot.position += Vector3(0.0, 7.0, -3.0) * delta
-				_pivot.rotation.z += delta * 8.0
+		"cloud":
+			# Rodopia e some dentro da nuvem.
+			var t := clampf(_death_time / 0.6, 0.0, 1.0)
+			_pivot.rotation.y += delta * 14.0
+			_pivot.position.y = sin(t * PI) * 0.6
+			_pivot.scale = Vector3.ONE * maxf(1.0 - t, 0.01)
 
 
 # ------------------------------------------------------------- Modelos

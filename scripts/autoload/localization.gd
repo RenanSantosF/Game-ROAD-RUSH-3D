@@ -31,7 +31,7 @@ const STRINGS := {
 	"NEXT_GOAL": ["Próxima meta: %d pontos", "Next goal: %d points", "Próxima meta: %d puntos"],
 	"ALL_GOALS_DONE": ["Todas as metas concluídas!", "All goals completed!", "¡Todas las metas completadas!"],
 	"GOAL_REACHED": ["META DE %d PONTOS!  +%d moedas", "%d POINTS GOAL!  +%d coins", "¡META DE %d PUNTOS!  +%d monedas"],
-	"EAGLE_GOT_YOU": ["A águia te pegou!", "The eagle got you!", "¡El águila te atrapó!"],
+	"CLOUD_GOT_YOU": ["A nuvem te engoliu!", "The cloud swallowed you!", "¡La nube te tragó!"],
 	"KEEP_HOPPING": ["Continue pulando!", "Keep hopping!", "¡Sigue saltando!"],
 
 	# Pausa
