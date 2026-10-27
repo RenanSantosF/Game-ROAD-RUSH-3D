@@ -1,37 +1,45 @@
 extends Node3D
 ## Controlador principal do jogo.
-## Liga jogador, estrada, obstáculos, câmera, interface, salvamento,
-## missões e anúncios. Cada sistema fica no seu próprio script; aqui só
-## ficam o fluxo da partida (estados) e a câmera.
+## Liga o bichinho, o mundo, a câmera panorâmica, a interface, o
+## salvamento, as missões e os anúncios. Cada sistema fica no seu próprio
+## script; aqui ficam só o fluxo da partida (estados) e a câmera.
 
 enum GameState { MENU, PLAYING, DYING, REVIVE_OFFER, GAME_OVER }
 
-const DEATH_DELAY := 1.1
+const DEATH_DELAY := 1.2
 const TUTORIAL_GAMES := 3
-const TUTORIAL_TIME := 5.0
+
+# Câmera panorâmica (de cima, na diagonal).
+const PLAY_CAM_OFFSET := Vector3(2.2, 11.5, 5.6)
+const PLAY_LOOK_OFFSET := Vector3(0.0, 0.0, -1.3)
+const MENU_CAM_OFFSET := Vector3(1.4, 3.0, 3.8)
+const MENU_LOOK_OFFSET := Vector3(-1.5, 0.45, -0.4)
+const SHOP_CAM_OFFSET := Vector3(0.7, 1.8, 2.7)
+const SHOP_LOOK_OFFSET := Vector3(-0.85, 0.5, 0.0)
 
 var state: int = GameState.MENU
 
-var _speed := 0.0
+var _score := 0
 var _run_coins := 0
 var _run_time := 0.0
-var _run_jumps := 0
-var _run_slides := 0
+var _run_hops := 0
+var _run_roads := 0
 var _revived := false
 var _run_committed := false
 var _double_used := false
 var _death_timer := 0.0
-var _last_score := -1
 var _next_milestone := -1
+var _scrolling := false
+var _focus := 0.0
 
-var _cam_blend := 0.0
+var _cam_pos := Vector3(3, 9, 7)
+var _cam_look := Vector3.ZERO
 var _cam_x := 0.0
 var _shake := 0.0
 var _rng := RandomNumberGenerator.new()
 
 @onready var _player: Player = %Player
-@onready var _road: RoadManager = %Road
-@onready var _spawner: ObstacleSpawner = %Spawner
+@onready var _world: World = %World
 @onready var _camera: Camera3D = %Camera
 @onready var _sun: DirectionalLight3D = %Sun
 @onready var _swipe: SwipeInput = %SwipeInput
@@ -51,10 +59,11 @@ func _ready() -> void:
 	ModelFactory.warm_up()
 	_player.set_character(CharacterCatalog.get_by_id(SaveManager.get_selected_character()))
 
-	_player.jumped.connect(_on_player_jumped)
-	_player.slid.connect(_on_player_slid)
-	_player.lane_changed.connect(func(_lane: int): AudioManager.play_sfx("click", 0.1))
+	_player.hopped.connect(_on_player_hopped)
+	_player.landed.connect(_on_player_landed)
+	_player.bumped.connect(func(): AudioManager.play_sfx("bump"))
 	_swipe.swiped.connect(_on_swipe)
+	_world.train_warning.connect(_on_train_warning)
 
 	_hud.pause_pressed.connect(_pause)
 	_hud.countdown_finished.connect(_on_countdown_finished)
@@ -78,6 +87,7 @@ func _ready() -> void:
 	SaveManager.settings_changed.connect(_apply_settings)
 	_apply_settings()
 	_go_to_menu()
+	_snap_camera()
 	AudioManager.play_music()
 
 
@@ -95,16 +105,22 @@ func _close_all_menus() -> void:
 		menu.close()
 
 
+func _reset_world() -> void:
+	_world.reset()
+	_player.set_character(CharacterCatalog.get_by_id(SaveManager.get_selected_character()))
+	_focus = 0.0
+	_cam_x = 0.0
+
+
 func _go_to_menu() -> void:
 	get_tree().paused = false
 	state = GameState.MENU
 	_swipe.enabled = false
 	_close_all_menus()
 	_hud.visible = false
-	_spawner.reset()
-	_road.reset()
-	_player.set_character(CharacterCatalog.get_by_id(SaveManager.get_selected_character()))
-	_player.go_idle()
+	_reset_world()
+	_player.place(0, 0, 0.0, false)
+	_player.model.face(Vector2i.DOWN)
 	_main_menu.open()
 
 
@@ -124,19 +140,19 @@ func _back_to_main_menu() -> void:
 func _start_run() -> void:
 	get_tree().paused = false
 	_close_all_menus()
-	_player.set_character(CharacterCatalog.get_by_id(SaveManager.get_selected_character()))
-	_spawner.reset()
-	_road.reset()
-	_player.reset_run()
+	if state != GameState.MENU:
+		_reset_world()
+	_player.place(0, 0, 0.0, true)
+	_score = 0
 	_run_coins = 0
 	_run_time = 0.0
-	_run_jumps = 0
-	_run_slides = 0
+	_run_hops = 0
+	_run_roads = 0
 	_revived = false
 	_run_committed = false
 	_double_used = false
-	_last_score = -1
-	_speed = GameConfig.START_SPEED
+	_scrolling = false
+	_focus = 0.0
 	_update_next_milestone()
 	_hud.reset(SaveManager.get_best_score())
 	_hud.visible = true
@@ -152,64 +168,69 @@ func _process(delta: float) -> void:
 	match state:
 		GameState.PLAYING:
 			_update_playing(delta)
-		GameState.DYING:
-			_player.update_dead(delta)
-			_death_timer -= delta
-			if _death_timer <= 0.0:
-				_after_death()
+		GameState.MENU, GameState.DYING, GameState.REVIVE_OFFER, GameState.GAME_OVER:
+			_world.update(delta, int(floor(_focus)))
+			if state == GameState.DYING:
+				_death_timer -= delta
+				if _death_timer <= 0.0:
+					_after_death()
 	_update_camera(delta)
 
 
 func _update_playing(delta: float) -> void:
-	_speed = GameConfig.speed_for_distance(_player.distance)
-	_player.update_run(delta, _speed)
 	_run_time += delta
-	_spawner.update(delta, _player.distance, _speed)
-	_road.update(_player.distance)
-	_check_collision()
+	_world.update(delta, int(floor(_focus)))
+	_player.update(delta, _world)
+	_check_hazards(delta)
 	if state != GameState.PLAYING:
 		return
-	var got := _spawner.collect_coins(_player.position.x, _player.height, _player.distance)
-	if got > 0:
-		_run_coins += got
-		_hud.set_coins(_run_coins)
-		AudioManager.play_sfx("coin", 0.05)
-	var score := int(_player.distance)
-	if score != _last_score:
-		_last_score = score
-		_hud.set_score(score)
-		_check_milestone(score)
-	if _run_time > TUTORIAL_TIME:
-		_hud.show_tutorial(false)
+	if _scrolling:
+		_focus += GameConfig.scroll_speed_for_row(_score) * delta
+	var desired := float(_player.row)
+	if desired > _focus:
+		_focus = lerpf(_focus, desired, 1.0 - exp(-4.0 * delta))
+	if float(_player.row) < _focus - GameConfig.BEHIND_LIMIT:
+		_kill("eagle")
 
 
-func _check_collision() -> void:
-	if _player.invincible_time > 0.0:
+func _check_hazards(delta: float) -> void:
+	if _player.state != Player.State.ALIVE:
 		return
-	var o := _spawner.find_collision(_player.position.x, _player.height, _player.get_top(), _player.distance)
-	if o == null:
+	var lane := _world.get_lane(_player.visual_row())
+	if lane == null:
 		return
-	var overlap_x := o.half_extents.x + GameConfig.PLAYER_HALF_WIDTH - absf(o.position.x - _player.position.x)
-	var overlap_z := o.half_extents.z + GameConfig.PLAYER_HALF_DEPTH - absf(o.get_along() - _player.distance)
-	if _player.is_changing_lane() and overlap_x < overlap_z:
-		# Raspão lateral ao trocar de faixa: volta para a faixa anterior.
-		if _player.lane == o.lane:
-			_player.bounce_back()
-			_shake = 0.25
-			AudioManager.play_sfx("bump")
+	if lane.is_dangerous():
+		if _player.invincible_time <= 0.0 and lane.hit_test(_player.position.x, GameConfig.PLAYER_HALF_WIDTH):
+			_kill("squash")
 		return
-	_kill_player()
+	if lane.type == Lane.Type.RIVER and _player.is_grounded():
+		var v := lane.platform_velocity_at(_player.position.x)
+		if is_nan(v):
+			_kill("water")
+			return
+		_player.ride(v * delta)
+		if absf(_player.position.x) > GameConfig.COLUMNS_HALF + 0.6:
+			_kill("water")
 
 
-func _kill_player() -> void:
+func _kill(cause: String) -> void:
 	state = GameState.DYING
 	_swipe.enabled = false
-	_player.die()
-	_death_timer = DEATH_DELAY
-	_shake = 0.5
+	_player.die(cause)
+	_death_timer = DEATH_DELAY + (0.4 if cause == "eagle" else 0.0)
 	_hud.set_pause_enabled(false)
 	_hud.show_tutorial(false)
-	AudioManager.play_sfx("crash")
+	match cause:
+		"water":
+			_shake = 0.15
+			AudioManager.play_sfx("splash")
+		"eagle":
+			_shake = 0.3
+			AudioManager.play_sfx("eagle")
+			_hud.show_toast("A águia te pegou!", Color(1.0, 0.75, 0.6))
+		_:
+			_shake = 0.45
+			AudioManager.play_sfx("crash")
 
 
 func _after_death() -> void:
@@ -232,12 +253,14 @@ func _on_revive_ad_result(rewarded: bool) -> void:
 		_finish_run()
 		return
 	_revived = true
-	_spawner.clear_for_revive(_player.distance)
-	_player.revive()
+	var start_row := maxi(_player.row, int(ceil(_focus - GameConfig.BEHIND_LIMIT + 1.0)))
+	var spot := _world.find_safe_spot(start_row)
+	_player.revive_at(spot.x, spot.y, 0.0)
+	_focus = minf(_focus, float(spot.y))
 	_hud.set_pause_enabled(true)
 	_swipe.enabled = true
 	state = GameState.PLAYING
-	_hud.show_toast("Continue correndo!", Color(0.6, 1.0, 0.6))
+	_hud.show_toast("Continue pulando!", Color(0.6, 1.0, 0.6))
 
 
 ## Grava moedas, recorde, estatísticas e missões (uma única vez por partida).
@@ -245,17 +268,16 @@ func _commit_run() -> Dictionary:
 	if _run_committed:
 		return {}
 	_run_committed = true
-	var score := int(_player.distance)
-	var new_record := SaveManager.record_run(score, _run_coins)
+	var new_record := SaveManager.record_run(_score, _run_coins)
 	var completed := Missions.record_run({
 		"coins": _run_coins,
-		"distance": score,
+		"distance": _score,
 		"time": int(_run_time),
-		"jumps": _run_jumps,
-		"slides": _run_slides,
+		"hops": _run_hops,
+		"roads": _run_roads,
 		"games": 1,
 	})
-	return {"score": score, "new_record": new_record, "completed": completed}
+	return {"score": _score, "new_record": new_record, "completed": completed}
 
 
 func _finish_run() -> void:
@@ -292,16 +314,16 @@ func _on_double_ad_result(rewarded: bool) -> void:
 	_game_over_menu.mark_doubled(_run_coins)
 
 
-func _check_milestone(score: int) -> void:
+func _check_milestone() -> void:
 	if _next_milestone < 0:
 		return
-	var meters: int = GameConfig.MILESTONES[_next_milestone]
-	if score < meters:
+	var target: int = GameConfig.MILESTONES[_next_milestone]
+	if _score < target:
 		return
 	var reward := GameConfig.milestone_reward(_next_milestone)
-	if SaveManager.claim_milestone(meters, reward):
+	if SaveManager.claim_milestone(target, reward):
 		AudioManager.play_sfx("reward")
-		_hud.show_toast("META DE %d m!  +%d moedas" % [meters, reward])
+		_hud.show_toast("META DE %d PONTOS!  +%d moedas" % [target, reward])
 	_update_next_milestone()
 
 
@@ -314,7 +336,7 @@ func _update_next_milestone() -> void:
 	if _next_milestone < 0:
 		_hud.set_goal("Todas as metas concluídas!")
 	else:
-		_hud.set_goal("Próxima meta: %d m" % GameConfig.MILESTONES[_next_milestone])
+		_hud.set_goal("Próxima meta: %d pontos" % GameConfig.MILESTONES[_next_milestone])
 
 
 # ----------------------------------------------------------------- Pausa
@@ -340,6 +362,7 @@ func _on_countdown_finished() -> void:
 
 func _restart_from_pause() -> void:
 	_commit_run()
+	state = GameState.GAME_OVER
 	_start_run()
 
 
@@ -353,52 +376,67 @@ func _menu_from_pause() -> void:
 func _on_swipe(direction: Vector2i) -> void:
 	if state != GameState.PLAYING or get_tree().paused:
 		return
-	match direction:
-		Vector2i.LEFT:
-			_player.change_lane(-1)
-		Vector2i.RIGHT:
-			_player.change_lane(1)
-		Vector2i.UP:
-			_player.jump()
-		Vector2i.DOWN:
-			_player.slide()
+	_player.request_hop(direction, _world)
 
 
-func _on_player_jumped() -> void:
-	_run_jumps += 1
-	AudioManager.play_sfx("jump", 0.05)
+func _on_player_hopped(_direction: Vector2i) -> void:
+	_run_hops += 1
+	if not _scrolling:
+		_scrolling = true
+		_hud.show_tutorial(false)
+	AudioManager.play_sfx("hop", 0.08)
 
 
-func _on_player_slid() -> void:
-	_run_slides += 1
-	AudioManager.play_sfx("slide")
+func _on_player_landed() -> void:
+	if _world.take_coin(_player.row, _player.current_column()):
+		_run_coins += 1
+		_hud.set_coins(_run_coins)
+		AudioManager.play_sfx("coin", 0.05)
+	if _player.row > _score:
+		_score = _player.row
+		_hud.set_score(_score)
+		var lane := _world.get_lane(_player.row)
+		if lane != null and lane.type == Lane.Type.ROAD:
+			_run_roads += 1
+		_check_milestone()
+
+
+func _on_train_warning(row: int) -> void:
+	if state == GameState.PLAYING and absi(row - _player.row) < 7:
+		AudioManager.play_sfx("bell")
 
 
 # ----------------------------------------------------------------- Câmera
 
-func _update_camera(delta: float) -> void:
-	var in_run := state != GameState.MENU
-	_cam_blend = move_toward(_cam_blend, 1.0 if in_run else 0.0, delta * 1.3)
-	var b := smoothstep(0.0, 1.0, _cam_blend)
+func _camera_targets() -> Array:
 	var p := _player.position
-	_cam_x = lerpf(_cam_x, p.x * 0.75, 1.0 - exp(-7.0 * delta))
+	if state == GameState.MENU:
+		if _characters_menu.visible:
+			return [p + SHOP_CAM_OFFSET, p + SHOP_LOOK_OFFSET]
+		return [p + MENU_CAM_OFFSET, p + MENU_LOOK_OFFSET]
+	var focus := Vector3(_cam_x, 0.0, -_focus)
+	return [focus + PLAY_CAM_OFFSET, focus + PLAY_LOOK_OFFSET]
 
-	var chase_pos := Vector3(_cam_x, 3.5 + p.y * 0.35, p.z + 6.4)
-	var chase_look := Vector3(_cam_x * 0.85, 1.1 + p.y * 0.3, p.z - 9.0)
-	var menu_pos := Vector3(p.x + 0.9, 1.5, p.z - 4.4)
-	var menu_look := Vector3(p.x + 1.7, 1.0, p.z)
-	var pos := menu_pos.lerp(chase_pos, b)
-	pos.x += sin(b * PI) * 3.5
-	pos.y += sin(b * PI) * 1.2
-	var look := menu_look.lerp(chase_look, b)
 
+func _snap_camera() -> void:
+	var targets := _camera_targets()
+	_cam_pos = targets[0]
+	_cam_look = targets[1]
+
+
+func _update_camera(delta: float) -> void:
+	if state != GameState.MENU:
+		_cam_x = lerpf(_cam_x, clampf(_player.position.x * 0.5, -1.6, 1.6), 1.0 - exp(-3.0 * delta))
+	var targets := _camera_targets()
+	var k := 1.0 - exp(-(8.0 if state == GameState.PLAYING else 4.0) * delta)
+	_cam_pos = _cam_pos.lerp(targets[0], k)
+	_cam_look = _cam_look.lerp(targets[1], k)
+	var pos := _cam_pos
 	if _shake > 0.0:
 		_shake = maxf(_shake - delta, 0.0)
-		var amount := _shake * 0.35
+		var amount := _shake * 0.3
 		pos += Vector3(_rng.randf_range(-amount, amount), _rng.randf_range(-amount, amount), 0.0)
-	_camera.look_at_from_position(pos, look, Vector3.UP)
-	var speed_factor := clampf((_speed - GameConfig.START_SPEED) / (GameConfig.MAX_SPEED - GameConfig.START_SPEED), 0.0, 1.0)
-	_camera.fov = lerpf(60.0, lerpf(62.0, 72.0, speed_factor), b)
+	_camera.look_at_from_position(pos, _cam_look, Vector3.UP)
 
 
 # ------------------------------------------------- Android: voltar / segundo plano
@@ -406,9 +444,7 @@ func _update_camera(delta: float) -> void:
 func _notification(what: int) -> void:
 	match what:
 		NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_APPLICATION_PAUSED:
-			if state == GameState.PLAYING and not get_tree().paused:
-				if _hud.is_counting_down():
-					return
+			if state == GameState.PLAYING and not get_tree().paused and not _hud.is_counting_down():
 				_pause()
 		NOTIFICATION_WM_GO_BACK_REQUEST:
 			_on_back()

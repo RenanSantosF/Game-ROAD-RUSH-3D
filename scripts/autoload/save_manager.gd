@@ -11,7 +11,7 @@ signal settings_changed
 const SAVE_PATH := "user://save.json"
 const TEMP_PATH := "user://save.tmp"
 const BACKUP_PATH := "user://save.bak"
-const SAVE_VERSION := 1
+const SAVE_VERSION := 2
 
 var data: Dictionary = {}
 
@@ -50,6 +50,13 @@ func load_game() -> void:
 	if loaded.is_empty():
 		loaded = _read_json(BACKUP_PATH)
 	data = _merge(_defaults(), loaded)
+	if int(loaded.get("version", SAVE_VERSION)) < SAVE_VERSION:
+		# v1 era o protótipo de corrida: recorde, metas e missões não valem mais.
+		data["version"] = SAVE_VERSION
+		data["best_score"] = 0
+		data["milestones_claimed"] = {}
+		data["missions"] = {}
+		data["selected_character"] = CharacterCatalog.DEFAULT_ID
 
 
 func save_game() -> void:
@@ -156,7 +163,8 @@ func record_run(score: int, coins: int) -> bool:
 
 func get_selected_character() -> String:
 	var id: String = data["selected_character"]
-	return id if is_unlocked(id) else CharacterCatalog.DEFAULT_ID
+	var exists: bool = CharacterCatalog.get_by_id(id)["id"] == id
+	return id if exists and is_unlocked(id) else CharacterCatalog.DEFAULT_ID
 
 
 func set_selected_character(id: String) -> void:

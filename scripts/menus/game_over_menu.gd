@@ -59,8 +59,8 @@ func _build() -> void:
 func show_results(score: int, best: int, coins: int, new_record: bool, completed: Array, can_double: bool) -> void:
 	_title.text = "NOVO RECORDE!" if new_record else "FIM DE JOGO"
 	_title.add_theme_color_override("font_color", UiTheme.COLOR_GOLD if new_record else Color.WHITE)
-	_score.text = "%d m" % score
-	_best.text = "Recorde: %d m" % best
+	_score.text = "%d pontos" % score
+	_best.text = "Recorde: %d" % best
 	_coins.text = "+%d moedas" % coins
 	if completed.is_empty():
 		_missions.text = ""

@@ -5,12 +5,11 @@ extends Node
 ## 2) Testa pausa, morte, continuar, fim de jogo, moedas, compra e missões.
 ## Termina com "SMOKE TEST OK" ou "SMOKE TEST FAIL".
 
-const BOT_RUN_SECONDS := 200.0
+const BOT_RUN_SECONDS := 120.0
 const BOT_RUNS := 3
 
 var main: Node
 var failures := []
-var _bot_cooldown := 0.0
 
 
 func _ready() -> void:
@@ -43,111 +42,113 @@ func _frames(n: int) -> void:
 # ----------------------------------------------------------------- Robô
 
 func _test_bot() -> void:
-	var total_deaths := 0
+	var best := 0
+	var all_deaths := {}
 	for run in BOT_RUNS:
 		main._start_run()
 		var time := 0.0
-		var deaths := 0
+		var deaths := {}
 		while time < BOT_RUN_SECONDS:
 			await get_tree().process_frame
 			time += 1.0 / 60.0
 			if main.state == main.GameState.PLAYING:
-				_bot_step(1.0 / 60.0)
+				_bot_step()
 			elif main.state == main.GameState.DYING:
-				deaths += 1
-				_report_death()
-				# revive direto (sem anúncio) para continuar medindo
-				main._spawner.clear_for_revive(main._player.distance)
-				main._player.revive()
-				main.state = main.GameState.PLAYING
-				main._swipe.enabled = true
-		print("Robô partida %d: %d m, %d moedas, %d batidas, obstáculos ativos=%d" % [
-			run + 1, int(main._player.distance), main._run_coins, deaths, main._spawner.get_active_count()])
-		total_deaths += deaths
-		_check(main._player.distance > 1000.0, "robô não avançou o suficiente")
-	print("Robô: total de batidas = %d" % total_deaths)
-	_check(total_deaths <= BOT_RUNS * 3, "muitas batidas do robô (possível padrão impossível)")
+				var cause: String = main._player.model._death
+				deaths[cause] = deaths.get(cause, 0) + 1
+				all_deaths[cause] = all_deaths.get(cause, 0) + 1
+				# continua direto (sem anúncio) para seguir medindo
+				main.state = main.GameState.REVIVE_OFFER
+				main._revived = false
+				Ads.show_rewarded("revive", main._on_revive_ad_result)
+				Ads._finish(true)
+		print("Robô partida %d: %d pontos, %d moedas, mortes=%s" % [run + 1, main._score, main._run_coins, deaths])
+		best = maxi(best, main._score)
+	print("Robô: melhor = %d, mortes = %s" % [best, all_deaths])
+	_check(best >= 60, "robô não avançou o suficiente (melhor %d)" % best)
 	main._go_to_menu()
 
 
-func _report_death() -> void:
+func _lane(row: int) -> Lane:
+	return main._world.get_lane(row)
+
+
+## O destino (linha, x) é seguro para pousar e ficar um pouco?
+func _safe_target(row: int, x: float, drift: float) -> bool:
+	if main._world.is_blocked(row, roundi(x)):
+		return false
+	var lane := _lane(row)
+	if lane == null:
+		return false
+	var hop := GameConfig.HOP_TIME
+	if lane.is_dangerous():
+		for i in 8:
+			if lane.predict_hit(x, 0.5, hop * 0.5 + i * 0.08):
+				return false
+		return true
+	if lane.type == Lane.Type.RIVER:
+		var land_x := x + drift * hop
+		return lane.predict_platform(land_x, hop, 0.2) and lane.predict_platform(land_x, hop + 0.25, 0.2)
+	return true
+
+
+func _safe_here() -> bool:
 	var p: Player = main._player
-	for o in main._spawner._active:
-		var d: float = o.get_along() - p.distance
-		if absf(d) < 6.0:
-			print("   batida perto de: tipo=%d faixa=%d d=%.1f  (jogador faixa=%d altura=%.2f deslizando=%s)" % [
-				o.kind, o.lane, d, p.lane, p.height, p.is_sliding])
+	var lane := _lane(p.row)
+	if lane.is_dangerous():
+		for i in 6:
+			if lane.predict_hit(p.position.x, 0.45, i * 0.08):
+				return false
+		return true
+	if lane.type == Lane.Type.RIVER:
+		return absf(p.position.x) < GameConfig.COLUMNS_HALF - 0.3 and lane.predict_platform(p.position.x, 0.35, 0.05)
+	return true
 
 
-func _threat(lane: int, max_d: float) -> Obstacle:
+func _bot_step() -> void:
 	var p: Player = main._player
-	var best: Obstacle = null
-	var best_d := INF
-	for o in main._spawner._active:
-		if o.lane != lane:
-			continue
-		var front: float = o.get_along() - o.half_extents.z - p.distance
-		if o.speed > 0.0:
-			front *= main._speed / (main._speed + o.speed)
-		if front < -o.half_extents.z * 2.0 - 0.5 or front > max_d:
-			continue
-		if front < best_d:
-			best_d = front
-			best = o
-	return best
+	if p.hopping:
+		return
+	var lane := _lane(p.row)
+	var on_river := lane.type == Lane.Type.RIVER
+	var drift := 0.0
+	if on_river:
+		var v := lane.platform_velocity_at(p.position.x)
+		drift = 0.0 if is_nan(v) else v
+	var col := roundi(p.position.x)
+	if _safe_target(p.row + 1, float(col), 0.0) and _safe_now_for_hop():
+		main._on_swipe(Vector2i.UP)
+		return
+	if main._world.is_blocked(p.row + 1, col) and lane.type == Lane.Type.GRASS:
+		# Árvore à frente: anda para o lado até uma coluna livre.
+		for step in [1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6, 7, -7, 8, -8]:
+			var c: int = col + step
+			if GameConfig.is_playable_column(c) and not main._world.is_blocked(p.row + 1, c):
+				var dir := Vector2i.RIGHT if step > 0 else Vector2i.LEFT
+				if not main._world.is_blocked(p.row, col + dir.x):
+					main._on_swipe(dir)
+					return
+	if _safe_here():
+		return
+	var options := [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.DOWN]
+	if p.position.x > 0.0:
+		options = [Vector2i.LEFT, Vector2i.DOWN, Vector2i.RIGHT]
+	for dir in options:
+		var tx := float(col + dir.x)
+		var tr := p.row + (-1 if dir == Vector2i.DOWN else 0)
+		if on_river and dir.x != 0:
+			tx = p.position.x + dir.x
+		if _safe_target(tr, tx, drift if (on_river and dir.x != 0) else 0.0):
+			main._on_swipe(dir)
+			return
 
 
-func _front(o: Obstacle) -> float:
+func _safe_now_for_hop() -> bool:
 	var p: Player = main._player
-	var front: float = o.get_along() - o.half_extents.z - p.distance
-	if o.speed > 0.0:
-		front *= main._speed / (main._speed + o.speed)
-	return front
-
-
-func _is_hard(o: Obstacle) -> bool:
-	return o.kind == Obstacle.Kind.CAR or o.kind == Obstacle.Kind.MOVING_CAR or o.kind == Obstacle.Kind.BUS
-
-
-func _lane_cost(lane: int) -> float:
-	var o := _threat(lane, 40.0)
-	if o == null:
-		return 0.0
-	var f := _front(o)
-	if _is_hard(o):
-		return 100.0 - f
-	return 10.0 - f * 0.1
-
-
-func _bot_step(delta: float) -> void:
-	_bot_cooldown -= delta
-	var p: Player = main._player
-	var speed: float = main._speed
-	var o := _threat(p.lane, 40.0)
-	if o != null:
-		var f := _front(o)
-		if _is_hard(o) and f < 30.0 and _bot_cooldown <= 0.0:
-			var best_lane := p.lane
-			var best_cost := _lane_cost(p.lane)
-			for l in 3:
-				if l == p.lane:
-					continue
-				var c := _lane_cost(l)
-				if absi(l - p.lane) == 2:
-					var mid := _threat(1, 40.0)
-					if mid != null and _is_hard(mid) and _front(mid) < 3.0:
-						continue
-					c += 1.0
-				if c < best_cost:
-					best_cost = c
-					best_lane = l
-			if best_lane != p.lane:
-				main._on_swipe(Vector2i.LEFT if best_lane < p.lane else Vector2i.RIGHT)
-				_bot_cooldown = 0.12
-		elif (o.kind == Obstacle.Kind.BARRIER or o.kind == Obstacle.Kind.CONES) and f < speed * 0.16 + 0.6 and f > 0.0:
-			main._on_swipe(Vector2i.UP)
-		elif o.kind == Obstacle.Kind.OVERHEAD and f < speed * 0.2 + 1.0 and f > -0.5 and not p.is_sliding:
-			main._on_swipe(Vector2i.DOWN)
+	var lane := _lane(p.row)
+	if lane.is_dangerous():
+		return not lane.predict_hit(p.position.x, 0.45, GameConfig.HOP_TIME * 0.5)
+	return true
 
 
 # ----------------------------------------------------------------- Fluxos
@@ -162,17 +163,19 @@ func _test_flows() -> void:
 	_check(main.state == main.GameState.PLAYING, "partida não começou")
 	main._pause()
 	_check(get_tree().paused, "pausa não congelou o jogo")
-	var d_paused: float = main._player.distance
+	main._on_swipe(Vector2i.UP)
+	var pos_paused: Vector3 = main._player.position
 	await _frames(20)
-	_check(is_equal_approx(d_paused, main._player.distance), "jogador andou durante a pausa")
+	_check(pos_paused == main._player.position, "jogador se mexeu durante a pausa")
 	main._resume()
 	await _frames(150)
 	_check(not get_tree().paused, "contagem regressiva não retomou o jogo")
 
 	# Moedas coletadas não duplicam
 	main._run_coins = 10
+	main._score = 7
 	# Morte -> oferta de continuar -> anúncio simulado com recompensa
-	main._kill_player()
+	main._kill("squash")
 	await _frames(int(main.DEATH_DELAY * 60) + 10)
 	_check(main.state == main.GameState.REVIVE_OFFER, "oferta de continuar não apareceu (estado %d)" % main.state)
 	main._on_revive_accepted()
@@ -184,7 +187,7 @@ func _test_flows() -> void:
 
 	# Segunda morte -> fim de jogo direto (só 1 continuar por partida)
 	await _frames(200)
-	main._kill_player()
+	main._kill("squash")
 	await _frames(int(main.DEATH_DELAY * 60) + 10)
 	_check(main.state == main.GameState.GAME_OVER, "fim de jogo não apareceu")
 	var after_run := SaveManager.get_coins()
@@ -217,11 +220,11 @@ func _test_flows() -> void:
 
 	# Compra de personagem
 	SaveManager.data["coins"] = 1000
-	_check(not SaveManager.buy_character("miau", 1500), "comprou sem moedas suficientes")
-	_check(SaveManager.buy_character("bia", 300), "não comprou personagem")
+	_check(not SaveManager.buy_character("gato", 1500), "comprou sem moedas suficientes")
+	_check(SaveManager.buy_character("pato", 300), "não comprou personagem")
 	_check(SaveManager.get_coins() == 700, "preço descontado errado")
-	_check(not SaveManager.buy_character("bia", 300), "comprou o mesmo personagem duas vezes")
-	_check(SaveManager.get_selected_character() == "bia", "personagem comprado não foi selecionado")
+	_check(not SaveManager.buy_character("pato", 300), "comprou o mesmo personagem duas vezes")
+	_check(SaveManager.get_selected_character() == "pato", "personagem comprado não foi selecionado")
 
 	# Missões: progresso, resgate único
 	var missions := Missions.get_missions()

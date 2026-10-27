@@ -1,45 +1,43 @@
 class_name Player
 extends Node3D
-## Lógica do corredor: avanço automático, troca de faixa, pulo, deslize,
-## morte e invencibilidade após continuar. Não usa o motor de física:
-## a posição é calculada diretamente, o que é previsível e barato.
+## O bichinho: anda pulando de quadrado em quadrado (frente, trás e
+## lados), guarda um comando enquanto está no ar, sobe em troncos e
+## morre de formas diferentes. Não usa o motor de física: as posições
+## são calculadas na grade, o que é previsível e barato.
 
-signal jumped
-signal slid
+signal hopped(direction: Vector2i)
 signal landed
-signal lane_changed(lane: int)
+signal bumped
 
-enum State { IDLE, RUNNING, DEAD }
+enum State { IDLE, ALIVE, DEAD }
 
 var state: int = State.IDLE
-var lane := 1
-var previous_lane := 1
-var distance := 0.0
-var height := 0.0
-var vertical_velocity := 0.0
-var is_grounded := true
-var is_sliding := false
+var row := 0
+var from_row := 0
+var hopping := false
 var invincible_time := 0.0
+var model: AnimalModel
 
-var model: CharacterModel
+var _t := 0.0
+var _from := Vector3.ZERO
+var _to := Vector3.ZERO
+var _drift := 0.0
+var _queued := Vector2i.ZERO
+var _has_queue := false
 var _blob: MeshInstance3D
-var _x := 0.0
-var _slide_time := 0.0
-var _slide_queued := false
-var _death_push := 0.0
 
 
 func _ready() -> void:
-	model = CharacterModel.new()
+	model = AnimalModel.new()
 	add_child(model)
 	_blob = MeshInstance3D.new()
 	var quad := QuadMesh.new()
-	quad.size = Vector2(0.9, 0.9)
+	quad.size = Vector2(0.75, 0.75)
 	quad.orientation = PlaneMesh.FACE_Y
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.albedo_color = Color(0, 0, 0, 0.35)
+	mat.albedo_color = Color(0, 0, 0, 0.3)
 	quad.material = mat
 	_blob.mesh = quad
 	_blob.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -54,167 +52,121 @@ func set_blob_shadow_visible(value: bool) -> void:
 	_blob.visible = value
 
 
-func go_idle() -> void:
-	state = State.IDLE
-	_reset_motion()
-	model.pose = CharacterModel.Pose.IDLE
-	model.rotation = Vector3.ZERO
-	_apply_position()
-
-
-func reset_run() -> void:
-	_reset_motion()
-	state = State.RUNNING
-	model.pose = CharacterModel.Pose.RUN
-	_apply_position()
-
-
-func _reset_motion() -> void:
-	lane = 1
-	previous_lane = 1
-	distance = 0.0
-	height = 0.0
-	vertical_velocity = 0.0
-	is_grounded = true
-	is_sliding = false
+## Coloca o bichinho em (coluna, linha) pronto para jogar ou parado no menu.
+func place(col: int, new_row: int, y: float, alive: bool) -> void:
+	state = State.ALIVE if alive else State.IDLE
+	row = new_row
+	from_row = new_row
+	hopping = false
+	_has_queue = false
+	_drift = 0.0
 	invincible_time = 0.0
-	_x = 0.0
-	_slide_time = 0.0
-	_slide_queued = false
-	model.visible = true
+	position = Vector3(col, y, -new_row)
+	model.reset()
+	model.face(Vector2i.UP)
+	_update_blob()
 
 
-func change_lane(direction: int) -> bool:
-	if state != State.RUNNING:
-		return false
-	var target := clampi(lane + direction, 0, GameConfig.LANE_COUNT - 1)
-	if target == lane:
-		return false
-	previous_lane = lane
-	lane = target
-	lane_changed.emit(lane)
-	return true
+func request_hop(dir: Vector2i, world: World) -> void:
+	if state != State.ALIVE:
+		return
+	if hopping:
+		_queued = dir
+		_has_queue = true
+		return
+	_start_hop(dir, world)
 
 
-func jump() -> bool:
-	if state != State.RUNNING or not is_grounded:
-		return false
-	is_sliding = false
-	_slide_queued = false
-	vertical_velocity = GameConfig.JUMP_VELOCITY
-	is_grounded = false
-	jumped.emit()
-	return true
+func _start_hop(dir: Vector2i, world: World) -> void:
+	var target_row := row
+	if dir == Vector2i.UP:
+		target_row += 1
+	elif dir == Vector2i.DOWN:
+		target_row -= 1
+	var current: Lane = world.get_lane(row)
+	var on_log := current != null and current.type == Lane.Type.RIVER
+	var target_x := float(roundi(position.x) + dir.x)
+	_drift = 0.0
+	if on_log and dir.x != 0:
+		# De lado em cima do tronco: o pulo acompanha o tronco.
+		target_x = position.x + dir.x
+		var v := current.platform_velocity_at(position.x)
+		_drift = 0.0 if is_nan(v) else v
+	model.face(dir)
+	if world.is_blocked(target_row, roundi(target_x)):
+		model.bump()
+		bumped.emit()
+		return
+	from_row = row
+	row = target_row
+	_from = position
+	_to = Vector3(target_x, world.surface_y(target_row), -target_row)
+	_t = 0.0
+	hopping = true
+	model.hop_t = 0.0
+	hopped.emit(dir)
 
 
-func slide() -> bool:
-	if state != State.RUNNING:
-		return false
-	if not is_grounded:
-		# No ar: desce rápido e desliza ao tocar o chão.
-		vertical_velocity = minf(vertical_velocity, GameConfig.FAST_FALL_VELOCITY)
-		_slide_queued = true
-		return true
-	if is_sliding:
-		_slide_time = GameConfig.SLIDE_DURATION
-		return false
-	_start_slide()
-	return true
-
-
-func _start_slide() -> void:
-	is_sliding = true
-	_slide_time = GameConfig.SLIDE_DURATION
-	slid.emit()
-
-
-func is_changing_lane() -> bool:
-	return absf(_x - GameConfig.lane_x(lane)) > 0.05
-
-
-func get_top() -> float:
-	return height + (GameConfig.PLAYER_SLIDE_HEIGHT if is_sliding else GameConfig.PLAYER_HEIGHT)
-
-
-func update_run(delta: float, speed: float) -> void:
-	distance += speed * delta
-	var target_x := GameConfig.lane_x(lane)
-	_x = move_toward(_x, target_x, GameConfig.LANE_CHANGE_SPEED * delta)
-
-	if not is_grounded:
-		vertical_velocity -= GameConfig.GRAVITY * delta
-		height += vertical_velocity * delta
-		if height <= 0.0:
-			height = 0.0
-			vertical_velocity = 0.0
-			is_grounded = true
-			landed.emit()
-			if _slide_queued:
-				_slide_queued = false
-				_start_slide()
-
-	if is_sliding:
-		_slide_time -= delta
-		if _slide_time <= 0.0:
-			is_sliding = false
-
+func update(delta: float, world: World) -> void:
 	if invincible_time > 0.0:
 		invincible_time -= delta
 		model.visible = invincible_time <= 0.0 or fmod(invincible_time, 0.2) > 0.1
+	if state != State.ALIVE or not hopping:
+		return
+	_t += delta / GameConfig.HOP_TIME
+	_from.x += _drift * delta
+	_to.x += _drift * delta
+	if _t >= 1.0:
+		hopping = false
+		position = _to
+		model.hop_t = -1.0
+		model.land()
+		_update_blob()
+		landed.emit()
+		if _has_queue:
+			_has_queue = false
+			_start_hop(_queued, world)
+		return
+	var p := _from.lerp(_to, _t)
+	p.y += sin(PI * _t) * GameConfig.HOP_HEIGHT
+	position = p
+	model.hop_t = _t
+	_update_blob()
 
-	model.run_speed = speed
-	model.vertical_velocity = vertical_velocity
-	if is_sliding:
-		model.pose = CharacterModel.Pose.SLIDE
-	elif not is_grounded:
-		model.pose = CharacterModel.Pose.AIR
-	else:
-		model.pose = CharacterModel.Pose.RUN
-	model.rotation.y = clampf(-(target_x - _x) * 0.3, -0.4, 0.4)
-	_apply_position()
+
+## Linha em que o corpo está "de verdade" durante o pulo (para colisões).
+func visual_row() -> int:
+	return from_row if hopping and _t < 0.5 else row
 
 
-func update_dead(delta: float) -> void:
-	distance -= _death_push * delta
-	_death_push = move_toward(_death_push, 0.0, 10.0 * delta)
-	if height > 0.0:
-		vertical_velocity -= GameConfig.GRAVITY * delta
-		height = maxf(height + vertical_velocity * delta, 0.0)
-	model.rotation.y = lerp_angle(model.rotation.y, 0.0, 1.0 - exp(-8.0 * delta))
-	_apply_position()
+func is_grounded() -> bool:
+	return not hopping
 
 
-func die() -> void:
+func current_column() -> int:
+	return roundi(position.x)
+
+
+## Movimento lateral do tronco em que está em cima.
+func ride(dx: float) -> void:
+	position.x += dx
+
+
+func die(cause: String) -> void:
 	state = State.DEAD
-	is_sliding = false
-	_slide_queued = false
-	vertical_velocity = minf(vertical_velocity, 0.0)
-	_death_push = 5.0
+	hopping = false
+	_has_queue = false
 	model.visible = true
-	model.pose = CharacterModel.Pose.DEAD
+	model.die(cause)
 
 
-## Batida de raspão na lateral: volta para a faixa anterior.
-func bounce_back() -> void:
-	var back := previous_lane
-	previous_lane = lane
-	lane = back
-
-
-func revive() -> void:
-	state = State.RUNNING
-	height = 0.0
-	vertical_velocity = 0.0
-	is_grounded = true
-	is_sliding = false
-	_x = GameConfig.lane_x(lane)
+func revive_at(col: int, new_row: int, y: float) -> void:
+	place(col, new_row, y, true)
 	invincible_time = GameConfig.REVIVE_INVINCIBILITY
-	model.pose = CharacterModel.Pose.RUN
-	_apply_position()
 
 
-func _apply_position() -> void:
-	position = Vector3(_x, height, -distance)
-	_blob.position = Vector3(0, -height + 0.03, 0)
-	var s := clampf(1.0 - height * 0.3, 0.4, 1.0)
+func _update_blob() -> void:
+	var ground := lerpf(_from.y, _to.y, _t) if hopping else position.y
+	_blob.position = Vector3(0, ground - position.y + 0.02, 0)
+	var s := clampf(1.0 - (position.y - ground) * 0.6, 0.5, 1.0)
 	_blob.scale = Vector3(s, 1.0, s)

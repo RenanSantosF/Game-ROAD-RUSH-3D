@@ -1,8 +1,7 @@
-[gd_scene load_steps=19 format=3]
+[gd_scene load_steps=18 format=3]
 
 [ext_resource type="Script" path="res://scripts/main/main.gd" id="1_main"]
-[ext_resource type="Script" path="res://scripts/road/road_manager.gd" id="2_road"]
-[ext_resource type="Script" path="res://scripts/obstacles/obstacle_spawner.gd" id="3_spawner"]
+[ext_resource type="Script" path="res://scripts/world/world.gd" id="2_world"]
 [ext_resource type="Script" path="res://scripts/player/player.gd" id="4_player"]
 [ext_resource type="Script" path="res://scripts/player/swipe_input.gd" id="5_swipe"]
 [ext_resource type="Script" path="res://scripts/ui/hud.gd" id="6_hud"]
@@ -33,7 +32,7 @@ ambient_light_energy = 0.5
 tonemap_mode = 0
 fog_enabled = true
 fog_light_color = Color(0.72, 0.86, 0.98, 1)
-fog_density = 0.011
+fog_density = 0.004
 fog_sky_affect = 0.0
 
 [node name="Main" type="Node3D"]
@@ -50,7 +49,7 @@ light_color = Color(1, 0.96, 0.88, 1)
 light_energy = 0.95
 shadow_enabled = true
 directional_shadow_mode = 0
-directional_shadow_max_distance = 32.0
+directional_shadow_max_distance = 26.0
 
 [node name="FillLight" type="DirectionalLight3D" parent="."]
 transform = Transform3D(-0.9397, 0.1710, -0.2962, 0, 0.8660, 0.5, 0.3420, 0.4698, -0.8138, 0, 10, 0)
@@ -61,18 +60,13 @@ light_energy = 0.35
 unique_name_in_owner = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.5, 6.4)
 current = true
-fov = 62.0
-far = 170.0
+fov = 40.0
+far = 80.0
 
-[node name="Road" type="Node3D" parent="."]
+[node name="World" type="Node3D" parent="."]
 unique_name_in_owner = true
 process_mode = 1
-script = ExtResource("2_road")
-
-[node name="Spawner" type="Node3D" parent="."]
-unique_name_in_owner = true
-process_mode = 1
-script = ExtResource("3_spawner")
+script = ExtResource("2_world")
 
 [node name="Player" type="Node3D" parent="."]
 unique_name_in_owner = true

@@ -11,8 +11,8 @@ config_version=5
 [application]
 
 config/name="Road Rush 3D"
-config/description="Endless runner 3D low-poly: corra pela cidade, desvie do trânsito e colete moedas."
-config/version="0.2.0"
+config/description="Jogo 3D low-poly de atravessar a rua: pule entre carros, troncos e trens sem ser pego!"
+config/version="0.3.0"
 run/main_scene="res://scenes/main/main.tscn"
 config/quit_on_go_back=false
 config/features=PackedStringArray("4.3", "GL Compatibility")

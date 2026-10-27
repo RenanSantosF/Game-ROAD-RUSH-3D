@@ -83,6 +83,15 @@ func _build_sfx() -> void:
 	_sfx["slide"] = _to_stream(_tone(0.28, 0.0, 0.0, "noise", 0.35, 0.08))
 	_sfx["bump"] = _to_stream(_mix(_tone(0.14, 180.0, 90.0, "sine", 0.7), _tone(0.1, 0.0, 0.0, "noise", 0.2, 0.2)))
 	_sfx["crash"] = _to_stream(_mix(_tone(0.55, 0.0, 0.0, "noise", 0.55, 0.12), _tone(0.5, 120.0, 40.0, "sine", 0.7)))
+	_sfx["hop"] = _to_stream(_tone(0.09, 420.0, 820.0, "triangle", 0.35))
+	_sfx["splash"] = _to_stream(_mix(_tone(0.5, 0.0, 0.0, "noise", 0.45, 0.06), _tone(0.25, 300.0, 120.0, "sine", 0.4)))
+	_sfx["bell"] = _to_stream(_concat([
+		_tone(0.18, 1175.0, 1175.0, "triangle", 0.35),
+		_tone(0.18, 988.0, 988.0, "triangle", 0.35),
+		_tone(0.18, 1175.0, 1175.0, "triangle", 0.35),
+		_tone(0.18, 988.0, 988.0, "triangle", 0.35),
+	]))
+	_sfx["eagle"] = _to_stream(_tone(0.6, 1900.0, 900.0, "sine", 0.4))
 	_sfx["click"] = _to_stream(_tone(0.05, 880.0, 880.0, "sine", 0.35))
 	_sfx["beep"] = _to_stream(_tone(0.12, 660.0, 660.0, "triangle", 0.45))
 	_sfx["go"] = _to_stream(_tone(0.25, 990.0, 990.0, "triangle", 0.45))

@@ -62,5 +62,5 @@ func _build() -> void:
 
 func _refresh() -> void:
 	_coins.set_value(SaveManager.get_coins())
-	_best.text = "Recorde: %d m" % SaveManager.get_best_score()
+	_best.text = "Recorde: %d pontos" % SaveManager.get_best_score()
 	_missions_button.text = "MISSÕES  (!)" if Missions.has_claimable() else "MISSÕES"

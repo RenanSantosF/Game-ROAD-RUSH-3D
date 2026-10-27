@@ -74,14 +74,14 @@ func _refresh() -> void:
 			next_index = i
 			break
 	if next_index == -1:
-		_goal.text = "Todas as metas de distância concluídas!"
+		_goal.text = "Todas as metas concluídas!"
 		_goal_bar.value = 100
 	else:
 		var target: int = GameConfig.MILESTONES[next_index]
-		_goal.text = "Próxima meta: %d m em uma partida  (+%d moedas)" % [target, GameConfig.milestone_reward(next_index)]
+		_goal.text = "Próxima meta: %d pontos em uma partida  (+%d moedas)" % [target, GameConfig.milestone_reward(next_index)]
 		_goal_bar.max_value = target
 		_goal_bar.value = mini(best, target)
-	_goal_info.text = "Metas alcançadas: %d de %d   |   Seu recorde: %d m" % [
+	_goal_info.text = "Metas alcançadas: %d de %d   |   Seu recorde: %d" % [
 		SaveManager.get_milestones_claimed_count(), GameConfig.MILESTONES.size(), best]
 
 

@@ -1,7 +1,8 @@
 # Road Rush 3D
 
-Endless runner 3D low-poly para Android, feito em **Godot 4.3** (GDScript, renderizador Compatibility).
-Corra pela cidade, troque de faixa, pule barreiras, deslize sob placas, desvie dos carros e colete moedas.
+Jogo 3D low-poly de **atravessar a rua** para Android, feito em **Godot 4.3** (GDScript, renderizador Compatibility).
+Ajude a galinha (e os outros bichinhos) a atravessar ruas cheias de carros, rios com troncos e trilhos de trem,
+pulando de quadrado em quadrado o mais longe possível. Câmera panorâmica, de cima e na diagonal.
 
 ## Baixar o APK de teste
 
@@ -20,23 +21,25 @@ chave de depuração (`ci/debug.keystore`), então uma build nova instala **por 
 
 | Gesto | Ação |
 |---|---|
-| Deslizar para a esquerda/direita | Trocar de faixa |
-| Deslizar para cima | Pular (barreiras e cones) |
-| Deslizar para baixo | Deslizar (placas suspensas); no ar, desce rápido |
+| Toque rápido na tela | Pula para a frente |
+| Deslizar para esquerda/direita | Pula para o lado |
+| Deslizar para baixo | Pula para trás |
+| Deslizar para cima | Pula para a frente |
 | Botão `II` / botão Voltar do Android | Pausar |
 
 No PC: setas/WASD/espaço e Esc.
 
-## O que já existe
+## Como funciona
 
-- 3 faixas, avanço automático, velocidade e dificuldade crescentes.
-- Carros parados e em movimento, ônibus, barreiras, cones e placas (sempre com pelo menos uma saída).
-- Moedas, distância, recorde, metas de distância com recompensa única.
-- Menu, pausa (com contagem 3-2-1), fim de jogo, reinício, configurações e política de privacidade.
-- Salvamento local (JSON com backup) de moedas, recorde, personagens, missões e configurações.
-- 4 personagens (1 grátis + 3 desbloqueáveis com moedas do jogo).
-- 3 missões diárias (moedas, distância e tempo/ações) com resgate.
-- Música e efeitos sintetizados por código (sem arquivos de terceiros).
+- Mundo infinito em linhas: **grama** (com árvores e pedras), **ruas** (carros e caminhões),
+  **rios** (troncos e vitórias-régias) e **trilhos** (o sinal pisca antes de o trem passar).
+- Morre atropelado, afogado ao cair na água ou levado pela correnteza, e a **águia** pega quem ficar parado
+  para trás (a câmera avança sozinha).
+- Pontos = quantas linhas você avançou. Moedas espalhadas pelo caminho.
+- Recorde, metas de pontos com recompensa única, 3 missões diárias e 4 bichinhos
+  (Galinha grátis; Pato, Porquinho e Gato desbloqueáveis com moedas do jogo).
+- Menu, pausa (contagem 3-2-1), fim de jogo, continuar, configurações e política de privacidade.
+- Salvamento local (JSON com backup). Música e efeitos sintetizados por código.
 - Camada de anúncios separada: **nenhum SDK real ainda**. O APK de teste mostra um "anúncio simulado" local,
   identificado como tal, só para testar o fluxo de continuar e dobrar moedas.
 
@@ -45,9 +48,8 @@ No PC: setas/WASD/espaço e Esc.
 ```
 scenes/main/main.tscn         cena principal (mundo 3D + interface)
 scripts/main/main.gd          fluxo da partida e câmera
-scripts/player/               jogador, modelo animado, gestos
-scripts/road/                 estrada infinita reaproveitada
-scripts/obstacles/            obstáculos, geração e pooling
+scripts/player/               bichinho (pulos na grade), modelos animados, gestos
+scripts/world/                linhas do mundo (grama/rua/rio/trilho), geração e reciclagem
 scripts/ui/ e scripts/menus/  HUD, tema e telas
 scripts/autoload/             SaveManager, AudioManager, Missions, Ads
 scripts/data/                 balanceamento e personagens
@@ -63,8 +65,8 @@ tests/                        teste automático (robô) e capturas de tela
 
 ## Progresso
 
-- [x] Etapas 1 a 12: projeto, estrada, personagem, controles, pulo/deslize, obstáculos, moedas/pontuação,
-  menus, salvamento, personagens, missões, sons e otimização (versão jogável 0.2.0)
+- [x] Etapas 1 a 12 no novo formato "atravessar a rua": mundo em grade, bichinhos, toques/deslizes, carros,
+  rios, trens, moedas/pontos, menus, salvamento, personagens, missões, sons e otimização (versão 0.3.0)
 - [ ] Etapa 13: AdMob real + configurações para público infantil (Famílias)
 - [ ] Etapa 14: testes completos em aparelhos Android
 - [ ] Etapa 15: AAB assinado e publicação na Google Play

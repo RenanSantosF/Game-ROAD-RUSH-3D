@@ -53,7 +53,7 @@ func _ready() -> void:
 	middle.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	middle.add_theme_constant_override("separation", -6)
 	top.add_child(middle)
-	_score = UiTheme.make_label("0 m", 60)
+	_score = UiTheme.make_label("0", 72)
 	middle.add_child(_score)
 	_best = UiTheme.make_label("", 22, Color(0.85, 0.95, 1.0))
 	middle.add_child(_best)
@@ -76,7 +76,7 @@ func _ready() -> void:
 	_toast.modulate.a = 0.0
 	column.add_child(_toast)
 	column.add_child(UiTheme.spacer())
-	_tutorial = UiTheme.make_label("Deslize para os LADOS para trocar de faixa\nPara CIMA para pular   |   Para BAIXO para deslizar", 28)
+	_tutorial = UiTheme.make_label("Toque na tela para pular para a FRENTE\nDeslize para os LADOS ou para TRÁS para desviar", 28)
 	_tutorial.visible = false
 	column.add_child(_tutorial)
 	_fps = UiTheme.make_label("", 20, Color(0.8, 1.0, 0.8), HORIZONTAL_ALIGNMENT_LEFT)
@@ -101,14 +101,14 @@ func _process(delta: float) -> void:
 func reset(best: int) -> void:
 	set_score(0)
 	set_coins(0)
-	_best.text = "Recorde: %d m" % best
+	_best.text = "Recorde: %d" % best
 	_toast.modulate.a = 0.0
 	_countdown.visible = false
 	set_pause_enabled(true)
 
 
 func set_score(value: int) -> void:
-	_score.text = "%d m" % value
+	_score.text = str(value)
 
 
 func set_coins(value: int) -> void:
