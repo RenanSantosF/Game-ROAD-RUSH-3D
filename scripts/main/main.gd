@@ -85,8 +85,8 @@ func _ready() -> void:
 	_pause_menu.menu_pressed.connect(_menu_from_pause)
 	_revive_menu.revive_accepted.connect(_on_revive_accepted)
 	_revive_menu.revive_declined.connect(_finish_run)
-	_game_over_menu.restart_pressed.connect(_start_run)
-	_game_over_menu.menu_pressed.connect(_go_to_menu)
+	_game_over_menu.restart_pressed.connect(_leave_game_over.bind(_start_run))
+	_game_over_menu.menu_pressed.connect(_leave_game_over.bind(_go_to_menu))
 	_game_over_menu.double_pressed.connect(_on_double_pressed)
 
 	SaveManager.settings_changed.connect(_apply_settings)
@@ -169,6 +169,7 @@ func _start_run() -> void:
 	_swipe.enabled = true
 	state = GameState.PLAYING
 	Missions.ensure_today()
+	Ads.on_game_started()
 
 
 func _process(delta: float) -> void:
@@ -278,6 +279,7 @@ func _commit_run() -> Dictionary:
 	if _run_committed:
 		return {}
 	_run_committed = true
+	Ads.on_game_finished()
 	var new_record := SaveManager.record_run(_score, _run_coins)
 	var completed := Missions.record_run({
 		"coins": _run_coins,
@@ -306,6 +308,14 @@ func _finish_run() -> void:
 		result["score"], SaveManager.get_best_score(), _run_coins,
 		result["new_record"], result["completed"],
 		Ads.is_rewarded_available() and not _double_used)
+
+
+## Saída da tela de fim de jogo: único momento em que o intersticial pode
+## aparecer (as regras de frequência ficam no Ads).
+func _leave_game_over(next_step: Callable) -> void:
+	if Ads.is_showing() or state != GameState.GAME_OVER:
+		return
+	Ads.show_interstitial_if_allowed(next_step)
 
 
 func _on_double_pressed() -> void:

@@ -14,9 +14,14 @@ extends Node
 ## classificação máxima "G". Assim não há anúncios personalizados nem
 ## remarketing, e o identificador de publicidade não é enviado.
 ##
-## Só anúncios RECOMPENSADOS e opcionais (o jogador escolhe assistir), nunca
-## no meio de uma ação. A recompensa só é entregue quando o SDK confirma que
-## o anúncio foi assistido (on_user_earned_reward) e ele foi fechado.
+## Formatos:
+## - RECOMPENSADO, opcional (o jogador escolhe assistir). A recompensa só é
+##   entregue quando o SDK confirma (on_user_earned_reward) e o anúncio fecha.
+## - INTERSTICIAL, só na transição natural da tela de fim de jogo para a
+##   próxima partida/menu, nunca durante o jogo. Limites (AdsConfig): no máximo
+##   1 a cada 3 partidas, 2 minutos desde o último anúncio, nunca nas 3
+##   primeiras partidas do jogador e nunca numa partida em que ele já assistiu
+##   um recompensado.
 
 signal ad_closed(placement: String, rewarded: bool)
 
@@ -36,6 +41,12 @@ var _reward_button: Button
 var _seconds_left := 0
 var _timer: Timer
 
+var _interstitial_ad: InterstitialAd
+var _interstitial_loading := false
+var _interstitial_reload := 0.0
+var _games_since_interstitial := 0
+var _last_ad_time := -100000.0
+var _rewarded_this_game := false
 var _rewarded_ad: RewardedAd
 var _loading := false
 var _earned := false
@@ -45,7 +56,7 @@ var _reload_timer := 0.0
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	if OS.get_name() == "Android" and Engine.has_singleton("PoingGodotAdMob"):
-		if AdsConfig.rewarded_unit_id() != "":
+		if AdsConfig.rewarded_unit_id() != "" or AdsConfig.interstitial_unit_id() != "":
 			provider = Provider.ADMOB
 			_init_admob()
 	elif OS.is_debug_build():
@@ -88,6 +99,9 @@ func _finish(rewarded: bool) -> void:
 	if not _showing:
 		return
 	_showing = false
+	_last_ad_time = _now()
+	if rewarded:
+		_rewarded_this_game = true
 	AudioManager.set_ducked(false)
 	if _layer != null:
 		_layer.queue_free()
@@ -108,21 +122,27 @@ func _init_admob() -> void:
 	config.max_ad_content_rating = RequestConfiguration.MAX_AD_CONTENT_RATING_G
 	MobileAds.set_request_configuration(config)
 	var listener := OnInitializationCompleteListener.new()
-	listener.on_initialization_complete = func(_status) -> void: _load_rewarded()
+	listener.on_initialization_complete = func(_status) -> void:
+		_load_rewarded()
+		_load_interstitial()
 	MobileAds.initialize(listener)
 
 
 func _process(delta: float) -> void:
-	if provider != Provider.ADMOB or _rewarded_ad != null or _loading:
+	if provider != Provider.ADMOB:
 		return
-	if _reload_timer > 0.0:
+	if _rewarded_ad == null and not _loading and _reload_timer > 0.0:
 		_reload_timer -= delta
 		if _reload_timer <= 0.0:
 			_load_rewarded()
+	if _interstitial_ad == null and not _interstitial_loading and _interstitial_reload > 0.0:
+		_interstitial_reload -= delta
+		if _interstitial_reload <= 0.0:
+			_load_interstitial()
 
 
 func _load_rewarded() -> void:
-	if _loading or _rewarded_ad != null:
+	if AdsConfig.rewarded_unit_id() == "" or _loading or _rewarded_ad != null:
 		return
 	_loading = true
 	var callback := RewardedAdLoadCallback.new()
@@ -153,9 +173,87 @@ func _show_admob() -> void:
 	ad.show(reward)
 
 
+# ------------------------------------------------------------- Intersticial
+
+func _now() -> float:
+	return Time.get_ticks_msec() / 1000.0
+
+
+## Chame ao fim de cada partida (conta para o limite de frequência).
+func on_game_finished() -> void:
+	_games_since_interstitial += 1
+
+
+## Chame ao começar uma partida nova.
+func on_game_started() -> void:
+	_rewarded_this_game = false
+
+
+## O intersticial pode aparecer agora? (todas as regras de frequência)
+func can_show_interstitial() -> bool:
+	if _showing or provider == Provider.NONE:
+		return false
+	if provider == Provider.ADMOB and _interstitial_ad == null:
+		return false
+	if SaveManager.get_stat("games") < AdsConfig.INTERSTITIAL_MIN_TOTAL_GAMES:
+		return false
+	if _games_since_interstitial < AdsConfig.INTERSTITIAL_EVERY_GAMES:
+		return false
+	if _now() - _last_ad_time < AdsConfig.INTERSTITIAL_MIN_SECONDS:
+		return false
+	return not _rewarded_this_game
+
+
+## Mostra o intersticial se as regras permitirem e depois chama on_done().
+## Se não puder mostrar, chama on_done() na hora.
+func show_interstitial_if_allowed(on_done: Callable) -> void:
+	if not can_show_interstitial():
+		on_done.call()
+		return
+	_games_since_interstitial = 0
+	_showing = true
+	_placement = "interstitial"
+	_callback = func(_ignored: bool) -> void: on_done.call()
+	AudioManager.set_ducked(true)
+	match provider:
+		Provider.DEBUG_MOCK:
+			_show_mock(true)
+		Provider.ADMOB:
+			_show_admob_interstitial()
+
+
+func _load_interstitial() -> void:
+	if AdsConfig.interstitial_unit_id() == "" or _interstitial_loading or _interstitial_ad != null:
+		return
+	_interstitial_loading = true
+	var callback := InterstitialAdLoadCallback.new()
+	callback.on_ad_loaded = func(ad: InterstitialAd) -> void:
+		_interstitial_loading = false
+		_interstitial_ad = ad
+	callback.on_ad_failed_to_load = func(error: LoadAdError) -> void:
+		_interstitial_loading = false
+		_interstitial_reload = RELOAD_DELAY
+		print("AdMob: falha ao carregar intersticial: ", error.message)
+	InterstitialAdLoader.new().load(AdsConfig.interstitial_unit_id(), AdRequest.new(), callback)
+
+
+func _show_admob_interstitial() -> void:
+	var ad := _interstitial_ad
+	_interstitial_ad = null
+	ad.full_screen_content_callback.on_ad_dismissed_full_screen_content = func() -> void:
+		ad.destroy()
+		_finish(false)
+		_load_interstitial()
+	ad.full_screen_content_callback.on_ad_failed_to_show_full_screen_content = func(_error) -> void:
+		ad.destroy()
+		_finish(false)
+		_load_interstitial()
+	ad.show()
+
+
 # ------------------------------------------------- Anúncio simulado (debug)
 
-func _show_mock() -> void:
+func _show_mock(interstitial := false) -> void:
 	_layer = CanvasLayer.new()
 	_layer.layer = 100
 	add_child(_layer)
@@ -176,13 +274,19 @@ func _show_mock() -> void:
 	box.add_child(UiTheme.make_label(tr("AD_MOCK_INFO"), 26))
 	_countdown_label = UiTheme.make_label("", 34)
 	box.add_child(_countdown_label)
-	_reward_button = UiTheme.make_button(tr("AD_GET_REWARD"), UiTheme.COLOR_PRIMARY)
-	_reward_button.disabled = true
-	_reward_button.pressed.connect(_finish.bind(true))
-	box.add_child(UiTheme.center(_reward_button))
-	var cancel := UiTheme.make_button(tr("AD_CLOSE_NO_REWARD"), UiTheme.COLOR_NEUTRAL, Vector2(420, 72), 26)
-	cancel.pressed.connect(_finish.bind(false))
-	box.add_child(UiTheme.center(cancel))
+	if interstitial:
+		_reward_button = UiTheme.make_button(tr("CLOSE"), UiTheme.COLOR_NEUTRAL)
+		_reward_button.disabled = true
+		_reward_button.pressed.connect(_finish.bind(false))
+		box.add_child(UiTheme.center(_reward_button))
+	else:
+		_reward_button = UiTheme.make_button(tr("AD_GET_REWARD"), UiTheme.COLOR_PRIMARY)
+		_reward_button.disabled = true
+		_reward_button.pressed.connect(_finish.bind(true))
+		box.add_child(UiTheme.center(_reward_button))
+		var cancel := UiTheme.make_button(tr("AD_CLOSE_NO_REWARD"), UiTheme.COLOR_NEUTRAL, Vector2(420, 72), 26)
+		cancel.pressed.connect(_finish.bind(false))
+		box.add_child(UiTheme.center(cancel))
 	_seconds_left = MOCK_DURATION
 	_update_mock_label()
 	_timer = Timer.new()

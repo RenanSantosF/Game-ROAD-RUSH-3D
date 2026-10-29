@@ -11,7 +11,7 @@ Guia passo a passo, feito para seguir pelo celular. Itens marcados com **(você)
 | Item | Onde |
 |---|---|
 | Jogo v1.0.0, target **API 36** (exigido para apps novos desde 31/08/2026) | `export_presets.cfg` + workflow |
-| AdMob (vídeo recompensado opcional), configurado para crianças | `scripts/autoload/ads_manager.gd` |
+| AdMob: premiado opcional + intersticial com limites (só ao sair do fim de jogo, 1 a cada 3 partidas, 2 min de intervalo, nunca nas 3 primeiras partidas), configurado para crianças | `scripts/autoload/ads_manager.gd` |
 | Permissões de ID de publicidade removidas (Famílias) | workflow, etapa "Template Android" |
 | AAB assinado gerado pelo GitHub Actions | artefato `RoadRush3D-aab` (depois do passo 3) |
 | Ícone 512, gráfico de recursos, 4 capturas × 3 idiomas | `store/images/` |
@@ -33,10 +33,12 @@ Guia passo a passo, feito para seguir pelo celular. Itens marcados com **(você)
 3. Copie o **ID do app** (formato `ca-app-pub-XXXXXXXXXXXXXXXX~YYYYYYYYYY`).
 4. **Blocos de anúncios > Adicionar > Premiado (Rewarded)** > nome "Continuar" > copie o **ID do bloco**
    (formato `ca-app-pub-XXXXXXXXXXXXXXXX/ZZZZZZZZZZ`).
-5. **Me envie os dois IDs.** Eu coloco em `scripts/data/ads_config.gd` (`REAL_APP_ID` e `REAL_REWARDED_ID`).
+5. **Blocos de anúncios > Adicionar > Intersticial** > nome "Fim de jogo" > copie o **ID do bloco**.
+6. **Me envie os três IDs.** Eu coloco em `scripts/data/ads_config.gd`
+   (`REAL_APP_ID`, `REAL_REWARDED_ID` e `REAL_INTERSTITIAL_ID`).
    Enquanto estiverem vazios, o AAB sai **sem anúncios** (pode publicar assim e ativar numa atualização).
-6. No AdMob, em **Controles de bloqueio > Configurações de conteúdo**, escolha a classificação máxima **G**.
-7. Depois que o app estiver na Play, volte em **Apps > Configurações do app** e **vincule à Google Play**.
+7. No AdMob, em **Controles de bloqueio > Configurações de conteúdo**, escolha a classificação máxima **G**.
+8. Depois que o app estiver na Play, volte em **Apps > Configurações do app** e **vincule à Google Play**.
 
 Importante: **nunca clique nos seus próprios anúncios reais**. O APK de teste usa só anúncios de teste do Google.
 

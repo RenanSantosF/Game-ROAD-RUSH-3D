@@ -212,6 +212,31 @@ func _test_flows() -> void:
 		Ads._finish(true)
 	_check(SaveManager.get_coins() == doubled, "dobrar moedas pagou duas vezes")
 
+	# Intersticial: respeita as regras de frequência
+	Ads._games_since_interstitial = 0
+	Ads._last_ad_time = -100000.0
+	Ads._rewarded_this_game = false
+	SaveManager.data["stats"]["games"] = 10
+	_check(not Ads.can_show_interstitial(), "intersticial antes de 3 partidas")
+	for i in 3:
+		Ads.on_game_finished()
+	_check(Ads.can_show_interstitial(), "intersticial não liberou após 3 partidas")
+	var shown := [false]
+	Ads.show_interstitial_if_allowed(func(): shown[0] = true)
+	await _frames(2)
+	_check(Ads.is_showing(), "intersticial simulado não abriu")
+	Ads._finish(false)
+	_check(shown[0], "jogo não continuou depois do intersticial")
+	for i in 3:
+		Ads.on_game_finished()
+	_check(not Ads.can_show_interstitial(), "intersticial ignorou o intervalo de 2 minutos")
+	Ads._last_ad_time = -100000.0
+	Ads._rewarded_this_game = true
+	_check(not Ads.can_show_interstitial(), "intersticial na partida com recompensado")
+	Ads._rewarded_this_game = false
+	SaveManager.data["stats"]["games"] = 1
+	_check(not Ads.can_show_interstitial(), "intersticial para jogador novo")
+
 	# Recorde salvo e recarregado do disco
 	var best := SaveManager.get_best_score()
 	_check(best > 0, "recorde não foi salvo")
