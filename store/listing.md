@@ -1,8 +1,9 @@
 # Ficha da loja (Google Play) — Road Rush 3D
 
 Copie cada campo para Play Console > Crescimento > Presença na loja > Ficha principal da loja.
-Idioma padrão: **Português (Brasil) – pt-BR**. Adicione **Inglês (Estados Unidos) – en-US** e
-**Espanhol (Espanha) – es-ES** em "Gerenciar traduções > Adicionar suas próprias traduções".
+Idioma padrão: **Português (Brasil) – pt-BR**. Em "Gerenciar traduções > Adicionar suas próprias traduções"
+adicione **Inglês (Estados Unidos) – en-US**, **Espanhol (América Latina) – es-419** e
+**Espanhol (Espanha) – es-ES** (os dois espanhóis usam o mesmo texto e as capturas de `es-ES/`).
 
 Imagens (pasta `store/images/`):
 - Ícone do app: `icon-512.png` (512×512, PNG 32 bits)
