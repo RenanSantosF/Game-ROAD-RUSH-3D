@@ -69,12 +69,17 @@ tests/                        teste automático (robô) e capturas de tela
 2. Baixe o código: botão **Code > Download ZIP** (escolha o branch antes), extraia e use **Import** no Godot
    selecionando o `project.godot`.
 
+## Publicação
+
+Guia passo a passo: [`docs/PUBLICACAO.md`](docs/PUBLICACAO.md). Material da loja (textos PT/EN/ES,
+ícone, gráfico de recursos, capturas e política de privacidade) em [`store/`](store/).
+
 ## Progresso
 
 - [x] Etapas 1 a 12 no novo formato "atravessar a rua": mundo em grade, bichinhos, toques/deslizes, carros,
   rios, trens, moedas/pontos, menus, salvamento, personagens, missões, sons e otimização (versão 0.3.0)
 - [x] Versão 0.4.0: tela vertical, idiomas PT/EN/ES
 - [x] Versão 0.5.0: nuvem que engole no lugar da águia, câmera mais rápida com aceleração gradual e teto
-- [ ] Etapa 13: AdMob real + configurações para público infantil (Famílias)
+- [x] Etapa 13: AdMob (recompensado) + configurações para público infantil (Famílias), target API 36
 - [ ] Etapa 14: testes completos em aparelhos Android
-- [ ] Etapa 15: AAB assinado e publicação na Google Play
+- [ ] Etapa 15: AAB assinado (pronto no CI, falta a chave nos segredos) e publicação na Google Play
