@@ -52,7 +52,7 @@ func _build() -> void:
 	pbox.add_theme_constant_override("separation", 14)
 	_privacy.add_child(pbox)
 	pbox.add_child(UiTheme.make_label(tr("PRIVACY_TITLE"), 38))
-	var text := UiTheme.make_label(tr("PRIVACY_TEXT"), 24)
+	var text := UiTheme.make_label(tr("PRIVACY_TEXT"), 22)
 	pbox.add_child(text)
 	var close := UiTheme.make_button(tr("CLOSE"), UiTheme.COLOR_PRIMARY, Vector2(300, 76), 30)
 	close.pressed.connect(_show_privacy.bind(false))

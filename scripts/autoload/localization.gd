@@ -118,9 +118,9 @@ const STRINGS := {
 	"PRIVACY_POLICY": ["Política de privacidade", "Privacy policy", "Política de privacidad"],
 	"PRIVACY_TITLE": ["PRIVACIDADE", "PRIVACY", "PRIVACIDAD"],
 	"PRIVACY_TEXT": [
-		"Este jogo não coleta dados pessoais.\nMoedas, recordes, personagens e configurações\nficam salvos somente neste aparelho e são\napagados ao desinstalar o jogo.\nEsta versão não usa internet, não tem compras\ne não exibe anúncios reais. Se isso mudar,\nesta política será atualizada.",
-		"This game does not collect personal data.\nCoins, records, characters and settings are\nsaved only on this device and are deleted\nwhen the game is uninstalled.\nThis version does not use the internet, has no\npurchases and shows no real ads. If that changes,\nthis policy will be updated.",
-		"Este juego no recopila datos personales.\nLas monedas, récords, personajes y ajustes\nse guardan solo en este dispositivo y se\nborran al desinstalar el juego.\nEsta versión no usa internet, no tiene compras\nni muestra anuncios reales. Si eso cambia,\nesta política se actualizará.",
+		"Este jogo não pede nem coleta dados pessoais.\nSeu progresso fica salvo só neste aparelho.\n\nOs vídeos opcionais com recompensa são do\nGoogle AdMob, configurado para crianças:\nsem anúncios personalizados e sem o ID de\npublicidade. O Google pode processar dados\ntécnicos (como endereço IP) para exibir os\nanúncios. Mais em policies.google.com.",
+		"This game does not ask for or collect personal data.\nYour progress is saved only on this device.\n\nOptional reward videos come from Google AdMob,\nset up for children: no personalized ads and\nno advertising ID. Google may process technical\ndata (such as IP address) to show the ads.\nMore at policies.google.com.",
+		"Este juego no pide ni recopila datos personales.\nTu progreso se guarda solo en este dispositivo.\n\nLos videos opcionales con recompensa son de\nGoogle AdMob, configurado para niños: sin\nanuncios personalizados y sin el ID de publicidad.\nGoogle puede procesar datos técnicos (como la\ndirección IP) para mostrar los anuncios.\nMás en policies.google.com.",
 	],
 	"CLOSE": ["FECHAR", "CLOSE", "CERRAR"],
 	"VERSION": ["Versão %s", "Version %s", "Versión %s"],

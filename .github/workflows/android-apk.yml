@@ -1,8 +1,13 @@
 name: Build APK (Android)
 
-# Gera um APK de teste a cada push. Para baixar:
-#   GitHub > Actions > execução mais recente > "Artifacts" > RoadRush3D-apk
-# ou (mais fácil no celular) em Releases > "APK de teste".
+# A cada push:
+# - APK de TESTE (anúncios de teste do Google): Releases > "APK de teste"
+#   ou Actions > execução > Artifacts > RoadRush3D-apk
+# - AAB de PUBLICAÇÃO assinado (se os segredos da chave de upload existirem):
+#   Actions > execução > Artifacts > RoadRush3D-aab
+#
+# Segredos necessários para o AAB (Settings > Secrets and variables > Actions):
+#   UPLOAD_KEYSTORE_BASE64, UPLOAD_KEYSTORE_PASSWORD, UPLOAD_KEY_ALIAS
 
 on:
   push:
@@ -18,11 +23,15 @@ concurrency:
 env:
   GODOT_VERSION: "4.3"
   GODOT_RELEASE: "4.3-stable"
+  # Plugin AdMob (Poing Studios, licença MIT). Os scripts ficam em addons/admob;
+  # aqui baixamos só os binários Android correspondentes ao Godot 4.3.0.
+  ADMOB_PLUGIN_VERSION: "v4.3.1"
+  ADMOB_ANDROID_ZIP: "poing-godot-admob-android-v4.3.0.zip"
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
     steps:
       - name: Baixar o código
         uses: actions/checkout@v4
@@ -81,6 +90,47 @@ jobs:
           sed -i 's/^          //' ~/.config/godot/editor_settings-${GODOT_VERSION}.tres
           cat ~/.config/godot/editor_settings-${GODOT_VERSION}.tres
 
+      - name: Pacotes do Android SDK (API 36)
+        run: |
+          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$SDK/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" > /dev/null
+          ls "$SDK/platforms" "$SDK/build-tools"
+
+      - name: Plugin AdMob (binários Android)
+        run: |
+          set -e
+          mkdir -p addons/admob/android/bin
+          wget -q -O admob-android.zip "https://github.com/poingstudios/godot-admob-plugin/releases/download/${ADMOB_PLUGIN_VERSION}/${ADMOB_ANDROID_ZIP}"
+          unzip -q -o admob-android.zip -d addons/admob/android/bin
+          rm admob-android.zip
+          printf '# This file is dynamically generated.\nconst VERSION := "%s"\n' "$ADMOB_PLUGIN_VERSION" > addons/admob/android/bin/package.gd
+          find addons/admob/android/bin -maxdepth 3 | head -50
+
+      - name: Template Android (Gradle) com target API 36
+        run: |
+          set -e
+          TEMPLATES=~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+          rm -rf android
+          mkdir -p android/build
+          unzip -q "$TEMPLATES/android_source.zip" -d android/build
+          echo "${GODOT_VERSION}.stable" > android/.build_version
+          touch android/build/.gdignore
+          cd android/build
+          # Versões novas para compilar com API 36 e com as bibliotecas atuais do AdMob.
+          sed -i "s/androidGradlePlugin: '[^']*'/androidGradlePlugin: '8.9.1'/" config.gradle
+          sed -i "s/compileSdk *: *[0-9]*/compileSdk         : 36/" config.gradle
+          sed -i "s/targetSdk *: *[0-9]*/targetSdk          : 36/" config.gradle
+          sed -i "s/buildTools *: *'[^']*'/buildTools         : '36.0.0'/" config.gradle
+          sed -i "s/kotlinVersion *: *'[^']*'/kotlinVersion      : '2.1.20'/" config.gradle
+          sed -i "s#distributionUrl=.*#distributionUrl=https\\://services.gradle.org/distributions/gradle-8.11.1-bin.zip#" gradle/wrapper/gradle-wrapper.properties
+          echo "android.suppressUnsupportedCompileSdk=36" >> gradle.properties
+          # Público infantil (Famílias): remove a permissão do ID de publicidade.
+          sed -i 's#<application#<uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />\n\n    <application#' AndroidManifest.xml
+          head -12 config.gradle
+          cat gradle/wrapper/gradle-wrapper.properties
+          grep -n "AD_ID" AndroidManifest.xml
+
       - name: Número da versão (versionCode = número da execução)
         run: |
           sed -i "s/^version\/code=.*/version\/code=${GITHUB_RUN_NUMBER}/" export_presets.cfg
@@ -111,12 +161,48 @@ jobs:
           test -f builds/RoadRush3D.apk
           ls -la builds
 
-      - name: Publicar como artefato
+      - name: Publicar APK como artefato
         uses: actions/upload-artifact@v4
         with:
           name: RoadRush3D-apk
           path: builds/RoadRush3D.apk
           retention-days: 30
+
+      - name: Exportar AAB de publicação (assinado com a chave de upload)
+        env:
+          UPLOAD_KEYSTORE_BASE64: ${{ secrets.UPLOAD_KEYSTORE_BASE64 }}
+          UPLOAD_KEYSTORE_PASSWORD: ${{ secrets.UPLOAD_KEYSTORE_PASSWORD }}
+          UPLOAD_KEY_ALIAS: ${{ secrets.UPLOAD_KEY_ALIAS }}
+        run: |
+          set -o pipefail
+          if [ -z "$UPLOAD_KEYSTORE_BASE64" ]; then
+            echo "::warning::Segredos da chave de upload ausentes: AAB de publicação não foi gerado."
+            exit 0
+          fi
+          echo "$UPLOAD_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload.keystore"
+          # App ID real do AdMob (se já configurado em scripts/data/ads_config.gd).
+          REAL_APP_ID=$(grep -oP 'const REAL_APP_ID := "\K[^"]*' scripts/data/ads_config.gd || true)
+          if [ -n "$REAL_APP_ID" ]; then
+            sed -i "s#const APPLICATION_ID := \"[^\"]*\"#const APPLICATION_ID := \"$REAL_APP_ID\"#" addons/admob/android/config.gd
+          else
+            echo "::warning::REAL_APP_ID vazio: o AAB sai com anúncios desligados."
+          fi
+          grep -n "APPLICATION_ID :=" addons/admob/android/config.gd
+          export GODOT_ANDROID_KEYSTORE_RELEASE_PATH="$RUNNER_TEMP/upload.keystore"
+          export GODOT_ANDROID_KEYSTORE_RELEASE_USER="$UPLOAD_KEY_ALIAS"
+          export GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD="$UPLOAD_KEYSTORE_PASSWORD"
+          ~/godot/godot --headless --path . --export-release "Android AAB" builds/RoadRush3D.aab 2>&1 | tee export-aab.log
+          rm -f "$RUNNER_TEMP/upload.keystore"
+          test -f builds/RoadRush3D.aab
+          ls -la builds
+
+      - name: Publicar AAB como artefato
+        if: hashFiles('builds/RoadRush3D.aab') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: RoadRush3D-aab
+          path: builds/RoadRush3D.aab
+          retention-days: 90
 
       - name: Atualizar a release "APK de teste"
         env:

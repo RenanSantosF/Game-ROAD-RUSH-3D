@@ -1,24 +1,29 @@
 extends Node
 ## Camada de anúncios (Autoload "Ads"), separada da lógica do jogo.
 ##
-## Situação atual (versão de testes):
-## - NENHUM SDK de anúncios está incluído e o app não acessa a internet.
-## - Em builds de depuração (APK do GitHub Actions) existe um "anúncio
-##   simulado" local, claramente identificado, só para testar o fluxo de
-##   recompensa (continuar a partida e dobrar moedas). Ele não exibe
-##   anúncio real, não gera impressão e não envia dados.
-## - Em builds de release o provedor é NONE e os botões de anúncio somem.
+## Provedores:
+## - ADMOB: no Android, quando o plugin do AdMob (Poing Studios, MIT) está
+##   no APK. Builds de teste usam os IDs de TESTE do Google; o AAB de
+##   publicação usa os IDs reais de AdsConfig (vazios = anúncios desligados).
+## - DEBUG_MOCK: no PC durante o desenvolvimento, um "anúncio simulado"
+##   local e identificado, só para testar o fluxo.
+## - NONE: sem anúncios (os botões de anúncio somem).
 ##
-## A integração real com o Google AdMob (plugin oficial do Godot +
-## configuração para público infantil) será feita na Etapa 13,
-## implementando um novo provedor aqui sem mexer no resto do jogo.
-## A recompensa só é entregue quando o provedor confirma o resultado.
+## Público infantil (Google Play Famílias): todas as solicitações vão marcadas
+## como direcionadas a crianças (COPPA), menores de idade (GDPR) e com
+## classificação máxima "G". Assim não há anúncios personalizados nem
+## remarketing, e o identificador de publicidade não é enviado.
+##
+## Só anúncios RECOMPENSADOS e opcionais (o jogador escolhe assistir), nunca
+## no meio de uma ação. A recompensa só é entregue quando o SDK confirma que
+## o anúncio foi assistido (on_user_earned_reward) e ele foi fechado.
 
 signal ad_closed(placement: String, rewarded: bool)
 
-enum Provider { NONE, DEBUG_MOCK }
+enum Provider { NONE, DEBUG_MOCK, ADMOB }
 
 const MOCK_DURATION := 3
+const RELOAD_DELAY := 20.0
 
 var provider: int = Provider.NONE
 
@@ -31,14 +36,31 @@ var _reward_button: Button
 var _seconds_left := 0
 var _timer: Timer
 
+var _rewarded_ad: RewardedAd
+var _loading := false
+var _earned := false
+var _reload_timer := 0.0
+
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	provider = Provider.DEBUG_MOCK if OS.is_debug_build() else Provider.NONE
+	if OS.get_name() == "Android" and Engine.has_singleton("PoingGodotAdMob"):
+		if AdsConfig.rewarded_unit_id() != "":
+			provider = Provider.ADMOB
+			_init_admob()
+	elif OS.is_debug_build():
+		provider = Provider.DEBUG_MOCK
 
 
 func is_rewarded_available() -> bool:
-	return provider != Provider.NONE and not _showing
+	if _showing:
+		return false
+	match provider:
+		Provider.DEBUG_MOCK:
+			return true
+		Provider.ADMOB:
+			return _rewarded_ad != null
+	return false
 
 
 func is_showing() -> bool:
@@ -58,6 +80,8 @@ func show_rewarded(placement: String, on_done: Callable) -> void:
 	match provider:
 		Provider.DEBUG_MOCK:
 			_show_mock()
+		Provider.ADMOB:
+			_show_admob()
 
 
 func _finish(rewarded: bool) -> void:
@@ -73,6 +97,60 @@ func _finish(rewarded: bool) -> void:
 	ad_closed.emit(_placement, rewarded)
 	if cb.is_valid():
 		cb.call(rewarded)
+
+
+# ------------------------------------------------------------------ AdMob
+
+func _init_admob() -> void:
+	var config := RequestConfiguration.new()
+	config.tag_for_child_directed_treatment = RequestConfiguration.TagForChildDirectedTreatment.TRUE
+	config.tag_for_under_age_of_consent = RequestConfiguration.TagForUnderAgeOfConsent.TRUE
+	config.max_ad_content_rating = RequestConfiguration.MAX_AD_CONTENT_RATING_G
+	MobileAds.set_request_configuration(config)
+	var listener := OnInitializationCompleteListener.new()
+	listener.on_initialization_complete = func(_status) -> void: _load_rewarded()
+	MobileAds.initialize(listener)
+
+
+func _process(delta: float) -> void:
+	if provider != Provider.ADMOB or _rewarded_ad != null or _loading:
+		return
+	if _reload_timer > 0.0:
+		_reload_timer -= delta
+		if _reload_timer <= 0.0:
+			_load_rewarded()
+
+
+func _load_rewarded() -> void:
+	if _loading or _rewarded_ad != null:
+		return
+	_loading = true
+	var callback := RewardedAdLoadCallback.new()
+	callback.on_ad_loaded = func(ad: RewardedAd) -> void:
+		_loading = false
+		_rewarded_ad = ad
+	callback.on_ad_failed_to_load = func(error: LoadAdError) -> void:
+		_loading = false
+		_reload_timer = RELOAD_DELAY
+		print("AdMob: falha ao carregar: ", error.message)
+	RewardedAdLoader.new().load(AdsConfig.rewarded_unit_id(), AdRequest.new(), callback)
+
+
+func _show_admob() -> void:
+	var ad := _rewarded_ad
+	_rewarded_ad = null
+	_earned = false
+	ad.full_screen_content_callback.on_ad_dismissed_full_screen_content = func() -> void:
+		ad.destroy()
+		_finish(_earned)
+		_load_rewarded()
+	ad.full_screen_content_callback.on_ad_failed_to_show_full_screen_content = func(_error) -> void:
+		ad.destroy()
+		_finish(false)
+		_load_rewarded()
+	var reward := OnUserEarnedRewardListener.new()
+	reward.on_user_earned_reward = func(_item) -> void: _earned = true
+	ad.show(reward)
 
 
 # ------------------------------------------------- Anúncio simulado (debug)
