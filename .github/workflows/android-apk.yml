@@ -125,11 +125,18 @@ jobs:
           sed -i "s/kotlinVersion *: *'[^']*'/kotlinVersion      : '2.1.20'/" config.gradle
           sed -i "s#distributionUrl=.*#distributionUrl=https\\://services.gradle.org/distributions/gradle-8.11.1-bin.zip#" gradle/wrapper/gradle-wrapper.properties
           echo "android.suppressUnsupportedCompileSdk=36" >> gradle.properties
-          # Público infantil (Famílias): remove a permissão do ID de publicidade.
-          sed -i 's#<application#<uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />\n\n    <application#' AndroidManifest.xml
+          # Público infantil (Famílias): remove as permissões de ID de publicidade
+          # e de Privacy Sandbox que as bibliotecas de anúncio adicionam.
+          REMOVE=""
+          for perm in com.google.android.gms.permission.AD_ID android.permission.AD_ID \
+                      android.permission.ACCESS_ADSERVICES_AD_ID android.permission.ACCESS_ADSERVICES_ATTRIBUTION \
+                      android.permission.ACCESS_ADSERVICES_TOPICS; do
+            REMOVE="$REMOVE    <uses-permission android:name=\"$perm\" tools:node=\"remove\" />\n"
+          done
+          sed -i "s#<application#${REMOVE}\n    <application#" AndroidManifest.xml
           head -12 config.gradle
           cat gradle/wrapper/gradle-wrapper.properties
-          grep -n "AD_ID" AndroidManifest.xml
+          grep -n "tools:node=\"remove\"" AndroidManifest.xml
 
       - name: Número da versão (versionCode = número da execução)
         run: |
