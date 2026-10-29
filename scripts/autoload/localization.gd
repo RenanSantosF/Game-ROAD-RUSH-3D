@@ -118,9 +118,9 @@ const STRINGS := {
 	"PRIVACY_POLICY": ["Política de privacidade", "Privacy policy", "Política de privacidad"],
 	"PRIVACY_TITLE": ["PRIVACIDADE", "PRIVACY", "PRIVACIDAD"],
 	"PRIVACY_TEXT": [
-		"Este jogo não pede nem coleta dados pessoais.\nSeu progresso fica salvo só neste aparelho.\n\nOs vídeos opcionais com recompensa são do\nGoogle AdMob, configurado para crianças:\nsem anúncios personalizados e sem o ID de\npublicidade. O Google pode processar dados\ntécnicos (como endereço IP) para exibir os\nanúncios. Mais em policies.google.com.",
-		"This game does not ask for or collect personal data.\nYour progress is saved only on this device.\n\nOptional reward videos come from Google AdMob,\nset up for children: no personalized ads and\nno advertising ID. Google may process technical\ndata (such as IP address) to show the ads.\nMore at policies.google.com.",
-		"Este juego no pide ni recopila datos personales.\nTu progreso se guarda solo en este dispositivo.\n\nLos videos opcionales con recompensa son de\nGoogle AdMob, configurado para niños: sin\nanuncios personalizados y sin el ID de publicidad.\nGoogle puede procesar datos técnicos (como la\ndirección IP) para mostrar los anuncios.\nMás en policies.google.com.",
+		"Este jogo não pede nem coleta dados pessoais.\nSeu progresso fica salvo só neste aparelho.\n\nOs anúncios (vídeos opcionais com recompensa\ne entre partidas) são do Google AdMob,\nconfigurado para crianças:\nsem anúncios personalizados e sem o ID de\npublicidade. O Google pode processar dados\ntécnicos (como endereço IP) para exibir os\nanúncios. Mais em policies.google.com.",
+		"This game does not ask for or collect personal data.\nYour progress is saved only on this device.\n\nAds (optional reward videos and ads between\ngames) come from Google AdMob, set up for children: no personalized ads and\nno advertising ID. Google may process technical\ndata (such as IP address) to show the ads.\nMore at policies.google.com.",
+		"Este juego no pide ni recopila datos personales.\nTu progreso se guarda solo en este dispositivo.\n\nLos anuncios (videos opcionales con recompensa\ny entre partidas) son de Google AdMob,\nconfigurado para niños: sin\nanuncios personalizados y sin el ID de publicidad.\nGoogle puede procesar datos técnicos (como la\ndirección IP) para mostrar los anuncios.\nMás en policies.google.com.",
 	],
 	"CLOSE": ["FECHAR", "CLOSE", "CERRAR"],
 	"VERSION": ["Versão %s", "Version %s", "Versión %s"],
