@@ -17,9 +17,9 @@ const TEST_REWARDED_ID := "ca-app-pub-3940256099942544/5224354917"
 const TEST_INTERSTITIAL_ID := "ca-app-pub-3940256099942544/1033173712"
 
 # Preencha com os IDs da sua conta AdMob (formato ca-app-pub-XXXX~YYYY e ca-app-pub-XXXX/ZZZZ).
-const REAL_APP_ID := ""
-const REAL_REWARDED_ID := ""
-const REAL_INTERSTITIAL_ID := ""
+const REAL_APP_ID := "ca-app-pub-4311255826061303~9743261011"
+const REAL_REWARDED_ID := "ca-app-pub-4311255826061303/4012422187"
+const REAL_INTERSTITIAL_ID := "ca-app-pub-4311255826061303/3201903396"
 
 
 # Limites do intersticial (só na saída da tela de fim de jogo).
