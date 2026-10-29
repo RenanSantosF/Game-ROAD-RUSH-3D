@@ -45,7 +45,7 @@ DESTAQUES
 • Jogue offline, sem cadastro.
 • Disponível em português, inglês e espanhol.
 
-Vídeos com recompensa são sempre opcionais: você escolhe assistir para continuar a partida ou dobrar as moedas. Não há compras dentro do app.
+O jogo é gratuito e contém anúncios. Os vídeos com recompensa são sempre opcionais: você escolhe assistir para continuar a partida ou dobrar as moedas. Não há compras dentro do app.
 ```
 
 ---
@@ -83,7 +83,7 @@ HIGHLIGHTS
 • Play offline, no sign-up.
 • Available in Portuguese, English and Spanish.
 
-Reward videos are always optional: you choose to watch one to continue your game or double your coins. There are no in-app purchases.
+The game is free and contains ads. Reward videos are always optional: you choose to watch one to continue your game or double your coins. There are no in-app purchases.
 ```
 
 ---
@@ -121,7 +121,7 @@ DESTACADOS
 • Juega sin conexión y sin registrarte.
 • Disponible en portugués, inglés y español.
 
-Los videos con recompensa son siempre opcionales: tú eliges verlos para continuar la partida o duplicar las monedas. No hay compras dentro de la aplicación.
+El juego es gratuito y contiene anuncios. Los videos con recompensa son siempre opcionales: tú eliges verlos para continuar la partida o duplicar las monedas. No hay compras dentro de la aplicación.
 ```
 
 ---
