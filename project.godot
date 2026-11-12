@@ -8,6 +8,10 @@
 
 config_version=5
 
+[admob]
+
+general/android/app_id="ca-app-pub-4311255826061303~9743261011"
+
 [application]
 
 config/name="Road Rush 3D"
@@ -15,14 +19,15 @@ config/description="Jogo 3D low-poly de atravessar a rua: pule entre carros, tro
 config/version="1.0.0"
 run/main_scene="res://scenes/main/main.tscn"
 config/quit_on_go_back=false
-config/features=PackedStringArray("4.3", "GL Compatibility")
-boot_splash/bg_color=Color(0.45, 0.78, 0.98, 1)
-boot_splash/image="res://assets/icons/icon.png"
-boot_splash/fullsize=false
+config/features=PackedStringArray("4.7", "GL Compatibility")
+boot_splash/bg_color=Color(1, 0.886, 0.498, 1)
+boot_splash/show_image=false
 config/icon="res://assets/icons/icon.png"
 
 [autoload]
 
+FTSplash="*res://addons/ft_splash/ft_splash.gd"
+ScreenFit="*res://addons/play_compat/screen_fit.gd"
 SaveManager="*res://scripts/autoload/save_manager.gd"
 Loc="*res://scripts/autoload/localization.gd"
 AudioManager="*res://scripts/autoload/audio_manager.gd"
@@ -35,11 +40,7 @@ window/size/viewport_width=720
 window/size/viewport_height=1280
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
-window/handheld/orientation=1
-
-[internationalization]
-
-locale/fallback="en"
+window/handheld/orientation=6
 
 [editor_plugins]
 
@@ -55,7 +56,5 @@ renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
 textures/vram_compression/import_etc2_astc=true
 lights_and_shadows/directional_shadow/size=2048
-lights_and_shadows/directional_shadow/size.mobile=2048
 lights_and_shadows/directional_shadow/soft_shadow_filter_quality=1
 lights_and_shadows/directional_shadow/soft_shadow_filter_quality.mobile=1
-anti_aliasing/quality/msaa_3d=0

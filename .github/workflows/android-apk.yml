@@ -21,12 +21,12 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  GODOT_VERSION: "4.3"
-  GODOT_RELEASE: "4.3-stable"
-  # Plugin AdMob (Poing Studios, licença MIT). Os scripts ficam em addons/admob;
-  # aqui baixamos só os binários Android correspondentes ao Godot 4.3.0.
-  ADMOB_PLUGIN_VERSION: "v4.3.1"
-  ADMOB_ANDROID_ZIP: "poing-godot-admob-android-v4.3.0.zip"
+  # Godot 4.7.2: bibliotecas Android alinhadas em 16 KB (exigência da Google Play
+  # para Android 15+) e alvo API 36. Plugin AdMob da Poing Studios v5.1.0 (MIT),
+  # com os binários Android para 4.7.2 já em addons/admob/android/bin.
+  GODOT_VERSION: "4.7"
+  GODOT_RELEASE: "4.7.2-stable"
+  GODOT_TEMPLATES: "4.7.2.stable"
 
 jobs:
   build:
@@ -49,7 +49,7 @@ jobs:
           path: |
             ~/godot
             ~/.local/share/godot/export_templates
-          key: godot-${{ env.GODOT_RELEASE }}-android-v1
+          key: godot-${{ env.GODOT_RELEASE }}-android-v2
 
       - name: Baixar Godot ${{ env.GODOT_RELEASE }} e modelos Android
         if: steps.cache-godot.outputs.cache-hit != 'true'
@@ -62,7 +62,7 @@ jobs:
           mv "Godot_v${GODOT_RELEASE}_linux.x86_64" godot
           rm "Godot_v${GODOT_RELEASE}_linux.x86_64.zip"
           wget -q "https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_export_templates.tpz"
-          TEMPLATES=~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+          TEMPLATES=~/.local/share/godot/export_templates/${GODOT_TEMPLATES}
           mkdir -p "$TEMPLATES"
           unzip -q -j "Godot_v${GODOT_RELEASE}_export_templates.tpz" \
             templates/android_debug.apk templates/android_release.apk templates/android_source.zip templates/version.txt \
@@ -94,37 +94,21 @@ jobs:
         run: |
           SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
           yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
-          "$SDK/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" > /dev/null
+          "$SDK/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.1.0" "ndk;29.0.14206865" > /dev/null
           ls "$SDK/platforms" "$SDK/build-tools"
 
-      - name: Plugin AdMob (binários Android)
+      - name: Template Android (Gradle) 4.7.2 + ajustes da Play Console
         run: |
           set -e
-          mkdir -p addons/admob/android/bin
-          wget -q -O admob-android.zip "https://github.com/poingstudios/godot-admob-plugin/releases/download/${ADMOB_PLUGIN_VERSION}/${ADMOB_ANDROID_ZIP}"
-          unzip -q -o admob-android.zip -d addons/admob/android/bin
-          rm admob-android.zip
-          printf '# This file is dynamically generated.\nconst VERSION := "%s"\n' "$ADMOB_PLUGIN_VERSION" > addons/admob/android/bin/package.gd
-          find addons/admob/android/bin -maxdepth 3 | head -50
-
-      - name: Template Android (Gradle) com target API 36
-        run: |
-          set -e
-          TEMPLATES=~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+          TEMPLATES=~/.local/share/godot/export_templates/${GODOT_TEMPLATES}
           rm -rf android
           mkdir -p android/build
           unzip -q "$TEMPLATES/android_source.zip" -d android/build
-          echo "${GODOT_VERSION}.stable" > android/.build_version
+          echo -n "${GODOT_TEMPLATES}" > android/.build_version
           touch android/build/.gdignore
+          # APIs de ponta a ponta descontinuadas no Android 15 (aviso da Play Console)
+          bash ci/android_play_compat.sh android/build
           cd android/build
-          # Versões novas para compilar com API 36 e com as bibliotecas atuais do AdMob.
-          sed -i "s/androidGradlePlugin: '[^']*'/androidGradlePlugin: '8.9.1'/" config.gradle
-          sed -i "s/compileSdk *: *[0-9]*/compileSdk         : 36/" config.gradle
-          sed -i "s/targetSdk *: *[0-9]*/targetSdk          : 36/" config.gradle
-          sed -i "s/buildTools *: *'[^']*'/buildTools         : '36.0.0'/" config.gradle
-          sed -i "s/kotlinVersion *: *'[^']*'/kotlinVersion      : '2.1.20'/" config.gradle
-          sed -i "s#distributionUrl=.*#distributionUrl=https\\://services.gradle.org/distributions/gradle-8.11.1-bin.zip#" gradle/wrapper/gradle-wrapper.properties
-          echo "android.suppressUnsupportedCompileSdk=36" >> gradle.properties
           # Público infantil (Famílias): remove as permissões de ID de publicidade
           # e de Privacy Sandbox que as bibliotecas de anúncio adicionam.
           REMOVE=""
@@ -133,10 +117,8 @@ jobs:
                       android.permission.ACCESS_ADSERVICES_TOPICS; do
             REMOVE="$REMOVE    <uses-permission android:name=\"$perm\" tools:node=\"remove\" />\n"
           done
-          sed -i "s#<application#${REMOVE}\n    <application#" AndroidManifest.xml
-          head -12 config.gradle
-          cat gradle/wrapper/gradle-wrapper.properties
-          grep -n "tools:node=\"remove\"" AndroidManifest.xml
+          sed -i "s#<application#${REMOVE}\n    <application#" src/main/AndroidManifest.xml
+          grep -n "tools:node=\"remove\"" src/main/AndroidManifest.xml
 
       - name: Número da versão (versionCode = número da execução)
         run: |
@@ -187,14 +169,6 @@ jobs:
             exit 0
           fi
           echo "$UPLOAD_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload.keystore"
-          # App ID real do AdMob (se já configurado em scripts/data/ads_config.gd).
-          REAL_APP_ID=$(grep -oP 'const REAL_APP_ID := "\K[^"]*' scripts/data/ads_config.gd || true)
-          if [ -n "$REAL_APP_ID" ]; then
-            sed -i "s#const APPLICATION_ID := \"[^\"]*\"#const APPLICATION_ID := \"$REAL_APP_ID\"#" addons/admob/android/config.gd
-          else
-            echo "::warning::REAL_APP_ID vazio: o AAB sai com anúncios desligados."
-          fi
-          grep -n "APPLICATION_ID :=" addons/admob/android/config.gd
           export GODOT_ANDROID_KEYSTORE_RELEASE_PATH="$RUNNER_TEMP/upload.keystore"
           export GODOT_ANDROID_KEYSTORE_RELEASE_USER="$UPLOAD_KEY_ALIAS"
           export GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD="$UPLOAD_KEYSTORE_PASSWORD"
