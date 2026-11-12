@@ -189,8 +189,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          FILES="builds/RoadRush3D.apk"
+          # AAB de publicação junto (release do repositório privado: só quem tem acesso baixa)
+          if [ -f builds/RoadRush3D.aab ]; then FILES="$FILES builds/RoadRush3D.aab"; fi
           gh release delete apk-teste --yes --cleanup-tag || true
-          gh release create apk-teste builds/RoadRush3D.apk \
+          gh release create apk-teste $FILES \
             --prerelease \
             --target "$GITHUB_SHA" \
             --title "APK de teste - build #${GITHUB_RUN_NUMBER}" \
