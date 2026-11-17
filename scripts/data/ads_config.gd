@@ -7,8 +7,8 @@ extends RefCounted
 ## - Builds de PUBLICAÇÃO (AAB) usam os IDs reais abaixo. Enquanto eles
 ##   estiverem vazios, os anúncios ficam desligados na versão publicada.
 ##
-## O App ID real também precisa ir em addons/admob/android/config.gd
-## (APPLICATION_ID); o GitHub Actions faz isso a partir de REAL_APP_ID.
+## O App ID real fica em project.godot ([admob] general/android/app_id),
+## lido pelo plugin AdMob (Poing Studios v5.1.0) na exportação.
 ## Nunca clique nos seus próprios anúncios reais.
 
 # IDs de teste oficiais do Google (https://developers.google.com/admob/android/test-ads)

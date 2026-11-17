@@ -11,3 +11,7 @@
 *.jks
 !ci/debug.keystore
 export_credentials.cfg
+
+# Binários iOS do plugin AdMob (baixados sozinhos pelo editor)
+addons/admob/ios/bin/
+addons/admob/downloads/

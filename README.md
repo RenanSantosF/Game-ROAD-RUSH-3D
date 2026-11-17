@@ -1,6 +1,6 @@
 # Road Rush 3D
 
-Jogo 3D low-poly de **atravessar a rua** para Android, feito em **Godot 4.3** (GDScript, renderizador Compatibility).
+Jogo 3D low-poly de **atravessar a rua** para Android, feito em **Godot 4.7.2** (GDScript, renderizador Compatibility).
 Ajude a galinha (e os outros bichinhos) a atravessar ruas cheias de carros, rios com troncos e trilhos de trem,
 pulando de quadrado em quadrado o mais longe possível. Câmera panorâmica, de cima e na diagonal,
 em **orientação vertical (retrato)**.
@@ -65,7 +65,7 @@ tests/                        teste automático (robô) e capturas de tela
 
 ## Abrir no editor Godot do Android
 
-1. Instale o **Godot Engine 4.3** (a versão do editor precisa ser a mesma do projeto).
+1. Instale o **Godot Engine 4.7.2** (a versão do editor precisa ser a mesma do projeto).
 2. Baixe o código: botão **Code > Download ZIP** (escolha o branch antes), extraia e use **Import** no Godot
    selecionando o `project.godot`.
 

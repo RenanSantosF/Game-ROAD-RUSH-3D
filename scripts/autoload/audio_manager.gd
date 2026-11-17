@@ -148,10 +148,16 @@ func _mix(a: PackedFloat32Array, b: PackedFloat32Array) -> PackedFloat32Array:
 
 
 func _to_stream(samples: PackedFloat32Array, loop := false) -> AudioStreamWAV:
+	# Godot 4.7: o mixer do Android lê algumas amostras além do fim (interpolação);
+	# sem folga ele lia memória fora do buffer e o app fechava sozinho (SIGSEGV no
+	# áudio) na primeira volta da música. Folga de 512 amostras: no loop repete o
+	# começo (emenda sem estalo); nos efeitos é silêncio.
+	var n := samples.size()
 	var bytes := PackedByteArray()
-	bytes.resize(samples.size() * 2)
-	for i in samples.size():
-		bytes.encode_s16(i * 2, int(clampf(samples[i], -1.0, 1.0) * 32767.0))
+	bytes.resize((n + 512) * 2)
+	for i in n + 512:
+		var v: float = samples[i % n] if (i < n or loop) else 0.0
+		bytes.encode_s16(i * 2, int(clampf(v, -1.0, 1.0) * 32767.0))
 	var stream := AudioStreamWAV.new()
 	stream.format = AudioStreamWAV.FORMAT_16_BITS
 	stream.mix_rate = MIX_RATE
