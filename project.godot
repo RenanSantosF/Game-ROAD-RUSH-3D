@@ -28,6 +28,7 @@ Loc="*res://scripts/autoload/localization.gd"
 AudioManager="*res://scripts/autoload/audio_manager.gd"
 Missions="*res://scripts/autoload/mission_manager.gd"
 Ads="*res://scripts/autoload/ads_manager.gd"
+Telemetry="*res://scripts/autoload/telemetry.gd"
 
 [display]
 

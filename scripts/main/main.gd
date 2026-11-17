@@ -302,6 +302,7 @@ func _finish_run() -> void:
 	var result := _commit_run()
 	if result.is_empty():
 		return
+	Telemetry.level("Corrida", bool(result["new_record"]), int(result["score"]))
 	if result["new_record"]:
 		AudioManager.play_sfx("reward")
 	_game_over_menu.show_results(
